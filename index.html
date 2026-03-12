@@ -10,13 +10,7 @@
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0d0520; font-family: Nunito, sans-serif; color: #f0e6ff; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #0d0520; }
-    ::-webkit-scrollbar-thumb { background: #3a2060; border-radius: 3px; }
-  </style>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: #0d0520; font-family: Nunito, sans-serif; color: #f0e6ff; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0d0520; } ::-webkit-scrollbar-thumb { background: #3a2060; border-radius: 3px; }</style>
 </head>
 <body>
   <div id="root"></div>
@@ -786,8 +780,6 @@ function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setVie
   const avgRating = friend.reviews.length ? (friend.reviews.reduce((a,r)=>a+r.rating,0)/friend.reviews.length).toFixed(1) : "—";
   const shoutouts = friend.reviews.filter(r=>r.employees).length;
   const boroughs = [...new Set(friend.reviews.map(r=>r.borough).filter(Boolean))];
-  const friendEarnedPts=ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(friend.reviews,0);}catch(e){return false;}}).reduce((s,a)=>s+(a.pts||0),0);
-  const friendTier=friendEarnedPts>=1000?"🔥 Bell Legend":friendEarnedPts>=500?"💫 Bell Master":friendEarnedPts>=250?"🏆 Bell Head":friendEarnedPts>=100?"⭐ Regular":friendEarnedPts>=25?"🌮 Newcomer":"🫘 Bean Counter";
   const topItem = (()=>{
     const counts={};friend.reviews.forEach(r=>{counts[r.itemId]=(counts[r.itemId]||0)+1;});
     const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
@@ -810,7 +802,6 @@ function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setVie
             <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:2,lineHeight:1,marginBottom:4}}>{friend.username}</h1>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               <span style={{background:"#7c3aed22",color:"#a78bfa",padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>🌮 Taco Bell Enjoyer</span>
-              <span style={{background:"#fbbf2422",color:"#fbbf24",padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>✨ {friendEarnedPts} pts · {friendTier}</span>
               {boroughs.map(b=><span key={b} style={{background:BOROUGH_COLORS[b]+"22",color:BOROUGH_COLORS[b],padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>📍 {b}</span>)}
             </div>
           </div>
@@ -863,6 +854,62 @@ function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setVie
         <span style={{fontSize:22}}>🏆</span>
         <div><div style={{fontSize:9,color:"#fbbf24",fontWeight:700,letterSpacing:2,marginBottom:2}}>MOST REVIEWED ITEM</div><div style={{fontWeight:800,fontSize:13}}>{topItem.name}</div><div style={{fontSize:10,color:"#7c5cad"}}>{topItem.category}</div></div>
       </div>}
+      {/* Achievements */}
+      {(()=>{
+        const friendBasePts=ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(friend.reviews,0);}catch(e){return false;}}).reduce((s,a)=>s+(a.pts||0),0);
+        const friendEarned=[...new Set([
+          ...ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(friend.reviews,0);}catch(e){return false;}}).map(a=>a.id),
+          ...ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(friend.reviews,friendBasePts);}catch(e){return false;}}).map(a=>a.id)
+        ])];
+        const friendTotalPts=ACHIEVEMENT_DEFS.filter(a=>friendEarned.includes(a.id)).reduce((s,a)=>s+(a.pts||0),0);
+        const friendMaxPts=ACHIEVEMENT_DEFS.reduce((s,a)=>s+(a.pts||0),0);
+        const pct=Math.round((friendTotalPts/friendMaxPts)*100);
+        const tier=friendTotalPts>=1000?"🔥 Bell Legend":friendTotalPts>=500?"💫 Bell Master":friendTotalPts>=250?"🏆 Bell Head":friendTotalPts>=100?"⭐ Regular":friendTotalPts>=25?"🌮 Newcomer":"🫘 Bean Counter";
+        const tierColor=friendTotalPts>=1000?"#fbbf24":friendTotalPts>=500?"#a78bfa":friendTotalPts>=250?"#f97316":friendTotalPts>=100?"#22c55e":"#7c5cad";
+        return(
+          <div style={{marginBottom:20}}>
+            <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:3,marginBottom:12,color:"#c4b5fd"}}>🏅 {friend.username.toUpperCase()}'S ACHIEVEMENTS</h2>
+            {/* Points banner */}
+            <div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.2),rgba(219,39,119,0.12))",border:"2px solid #3a2060",borderRadius:16,padding:"16px",marginBottom:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 100% 0%,rgba(251,191,36,0.07) 0%,transparent 60%)",pointerEvents:"none"}}/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+                <div>
+                  <div style={{fontSize:9,color:"#7c5cad",fontWeight:700,letterSpacing:2,marginBottom:2}}>ACHIEVEMENT POINTS</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                    <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,color:"#fbbf24",lineHeight:1}}>{friendTotalPts}</span>
+                    <span style={{fontSize:11,color:"#5a3f80"}}>/ {friendMaxPts} pts</span>
+                  </div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:16,color:tierColor,letterSpacing:1}}>{tier}</div>
+                  <div style={{fontSize:10,color:"#7c5cad"}}>{friendEarned.length} / {ACHIEVEMENT_DEFS.length} unlocked</div>
+                </div>
+              </div>
+              <div style={{height:8,borderRadius:4,background:"rgba(13,5,32,0.6)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#7c3aed,#fbbf24)",borderRadius:4,transition:"width 0.8s ease",boxShadow:"0 0 8px rgba(251,191,36,0.4)"}}/>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                <span style={{fontSize:9,color:"#5a3f80"}}>0</span>
+                <span style={{fontSize:9,color:"#fbbf24",fontWeight:700}}>{pct}% complete</span>
+                <span style={{fontSize:9,color:"#5a3f80"}}>{friendMaxPts}</span>
+              </div>
+            </div>
+            {/* Achievement grid */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:8}}>
+              {ACHIEVEMENT_DEFS.map(a=>{
+                const earned=friendEarned.includes(a.id);
+                return(<div key={a.id} style={{background:earned?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.5)",border:"1px solid "+(earned?"#7c3aed":"#1a0d35"),borderRadius:12,padding:"10px",opacity:earned?1:0.4,position:"relative"}}>
+                  <div style={{position:"absolute",top:6,right:8,fontFamily:"'Bebas Neue',cursive",fontSize:11,color:earned?"#fbbf24":"#3a2060"}}>+{a.pts}pts</div>
+                  <div style={{fontSize:22,marginBottom:3}}>{a.icon}</div>
+                  <div style={{fontWeight:800,fontSize:11,color:earned?"#f0e6ff":"#7c5cad"}}>{a.name}</div>
+                  <div style={{fontSize:9,color:"#5a3f80",marginTop:2}}>{a.desc}</div>
+                  {earned&&<div style={{marginTop:4,fontSize:9,color:"#a78bfa",fontWeight:700}}>✓ Earned</div>}
+                </div>);
+              })}
+            </div>
+          </div>
+        );
+      })()}
       {/* Reviews */}
       <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:3,marginBottom:12,color:"#c4b5fd"}}>{friend.username.toUpperCase()}'S RATINGS ({friend.reviews.length})</h2>
       {friend.reviews.length===0
@@ -1124,11 +1171,43 @@ function App(){
   const earnedAchievementsFinal=[...new Set([...earnedAchievements,...ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(myReviewsList,basePts);}catch(e){return false;}}).map(a=>a.id)])];
   const totalAchievementPoints=ACHIEVEMENT_DEFS.filter(a=>earnedAchievementsFinal.includes(a.id)).reduce((sum,a)=>sum+(a.pts||0),0);
   const maxAchievementPoints=ACHIEVEMENT_DEFS.reduce((sum,a)=>sum+(a.pts||0),0);
-  const oneWeekAgo=new Date();oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
-  const weeklyReviews=allReviewsWithFriends.filter(()=>true);
+  // Weekly window: Monday 00:00 → next Sunday 23:59 (resets every Monday)
+  const now=new Date();
+  const dayOfWeek=now.getDay(); // 0=Sun,1=Mon...6=Sat
+  const daysSinceMonday=(dayOfWeek+6)%7;
+  const weekStart=new Date(now);weekStart.setHours(0,0,0,0);weekStart.setDate(now.getDate()-daysSinceMonday);
+  const weeklyReviews=allReviewsWithFriends.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return d>=weekStart;});
   const weeklyByUser={};
   weeklyReviews.forEach(r=>{if(!weeklyByUser[r.user])weeklyByUser[r.user]={user:r.user,count:0,shoutouts:0};weeklyByUser[r.user].count++;if(r.employees)weeklyByUser[r.user].shoutouts++;});
   const weeklyLeaderboard=Object.values(weeklyByUser).sort((a,b)=>b.count-a.count);
+  // Weekly item stats (all reviews for leaderboard cards)
+  const allItemReviewCounts=MENU_ITEMS.map(i=>{
+    const rs=allReviewsWithFriends.filter(r=>r.itemId===i.id||r.item?.id===i.id);
+    const avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:0;
+    return{item:i,count:rs.length,avg};
+  }).filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
+  const allTopRated=MENU_ITEMS.map(i=>{
+    const rs=allReviewsWithFriends.filter(r=>r.itemId===i.id||r.item?.id===i.id);
+    const avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:0;
+    return{item:i,count:rs.length,avg};
+  }).filter(x=>x.count>0).sort((a,b)=>b.avg-a.avg||b.count-a.count);
+  // Weekly employee shoutouts
+  const weeklyEmpCounts={};
+  weeklyReviews.filter(r=>r.employees).forEach(r=>{
+    r.employees.split(/[,&]+/).map(e=>e.trim()).filter(Boolean).forEach(e=>{weeklyEmpCounts[e]=(weeklyEmpCounts[e]||0)+1;});
+  });
+  const weeklyTopEmployees=Object.entries(weeklyEmpCounts).sort((a,b)=>b[1]-a[1]);
+  // Weekly item stats
+  const weeklyItemCounts=MENU_ITEMS.map(i=>{
+    const rs=weeklyReviews.filter(r=>r.itemId===i.id||r.item?.id===i.id);
+    const avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:0;
+    return{item:i,count:rs.length,avg};
+  }).filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
+  const weeklyTopRated=MENU_ITEMS.map(i=>{
+    const rs=weeklyReviews.filter(r=>r.itemId===i.id||r.item?.id===i.id);
+    const avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:0;
+    return{item:i,count:rs.length,avg};
+  }).filter(x=>x.count>0).sort((a,b)=>b.avg-a.avg||b.count-a.count);
 
   const addFriend=async()=>{
     if(!isLoggedIn){showToast("Sign in to add friends!");return;}
@@ -1709,18 +1788,10 @@ function App(){
         })()}
 
         {/* LOCATIONS */}
-        {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView} avatarCache={avatarCache}/>}
+        {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView} avatarCache={avatarCache} onReport={setReportTarget} currentUser={currentUser}/>}
 
         {/* LEADERBOARD */}
         {view==="leaderboard"&&(()=>{
-          // Compute derived leaderboard data
-          const empCounts={};
-          allReviewsWithFriends.filter(r=>r.employees).forEach(r=>{
-            r.employees.split(/[,&]+/).map(e=>e.trim()).filter(Boolean).forEach(e=>{empCounts[e]=(empCounts[e]||0)+1;});
-          });
-          const topEmployees=Object.entries(empCounts).sort((a,b)=>b[1]-a[1]);
-          const itemReviewCounts=MENU_ITEMS.map(i=>({item:i,count:getReviews(i.id).length,avg:getAvg(i.id)}))
-            .filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
           const topLocations=ALL_LOCATIONS
             .map(({address,borough})=>({address,borough,score:locationScores[address]}))
             .filter(l=>l.score&&l.score.total>0)
@@ -1741,31 +1812,40 @@ function App(){
           );
           const Empty=({msg})=><p style={{color:"#5a3f80",fontSize:12,padding:"4px 0"}}>{msg}</p>;
 
+          // Next Monday countdown
+          const nextMonday=new Date(weekStart);nextMonday.setDate(nextMonday.getDate()+7);
+          const msLeft=nextMonday-now;
+          const dLeft=Math.floor(msLeft/(1000*60*60*24));
+          const hLeft=Math.floor((msLeft%(1000*60*60*24))/(1000*60*60));
+          const resetLabel=dLeft>0?`Resets in ${dLeft}d ${hLeft}h`:`Resets in ${hLeft}h`;
           return(
           <div>
-            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>🏆 LEADERBOARD</h1>
+            <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:14,flexWrap:"wrap"}}>
+              <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3}}>🏆 LEADERBOARD</h1>
+              <span style={{background:"rgba(251,191,36,0.12)",border:"1px solid #fbbf2440",borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700,color:"#fbbf24"}}>📅 THIS WEEK · {resetLabel}</span>
+            </div>
 
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12,marginBottom:12}}>
 
-              {/* Most Reviews */}
+              {/* Most Reviews This Week */}
               <LeaderCard title="📝 Most Reviews">
-                {weeklyLeaderboard.length===0?<Empty msg="No reviews yet!"/>:
+                {weeklyLeaderboard.length===0?<Empty msg="No reviews this week!"/>:
                   weeklyLeaderboard.slice(0,5).map((u,i)=><LeaderRow key={u.user} rank={i} label={u.user} sub={u.count+" review"+(u.count!==1?"s":"")} color="#a78bfa"/>)}
               </LeaderCard>
 
-              {/* MVP Employees */}
+              {/* MVP Employees This Week */}
               <LeaderCard title="🌟 MVP Employees">
-                {topEmployees.length===0?<Empty msg="No employee shoutouts yet!"/>:
-                  topEmployees.slice(0,5).map(([name,count],i)=><LeaderRow key={name} rank={i} label={name} sub={count+" shoutout"+(count!==1?"s":"")+" received"} color="#fbbf24"/>)}
+                {weeklyTopEmployees.length===0?<Empty msg="No shoutouts this week!"/>:
+                  weeklyTopEmployees.slice(0,5).map(([name,count],i)=><LeaderRow key={name} rank={i} label={name} sub={count+" shoutout"+(count!==1?"s":"")+" this week"} color="#fbbf24"/>)}
               </LeaderCard>
 
-              {/* Most Reviewed Items */}
+              {/* Most Reviewed Items This Week */}
               <LeaderCard title="🔥 Most Reviewed Items">
-                {itemReviewCounts.length===0?<Empty msg="No reviews yet!"/>:
-                  itemReviewCounts.slice(0,5).map((x,i)=><LeaderRow key={x.item.id} rank={i} label={x.item.emoji+" "+x.item.name} sub={x.count+" review"+(x.count!==1?"s":"")+" · "+x.avg.toFixed(1)+"★ avg"} color="#f97316" onClick={()=>{setSelectedItem(x.item);setView("detail");}}/>)}
+                {weeklyItemCounts.length===0?<Empty msg="No item reviews this week!"/>:
+                  weeklyItemCounts.slice(0,5).map((x,i)=><LeaderRow key={x.item.id} rank={i} label={x.item.emoji+" "+x.item.name} sub={x.count+" review"+(x.count!==1?"s":"")+" · "+x.avg.toFixed(1)+"★"} color="#f97316" onClick={()=>{setSelectedItem(x.item);setView("detail");}}/>)}
               </LeaderCard>
 
-              {/* Top Locations */}
+              {/* Top Locations (all time — location scores don't change weekly) */}
               <LeaderCard title="📍 Top Locations">
                 {topLocations.length===0?<Empty msg="No rated locations yet!"/>:
                   topLocations.map((l,i)=>{const tier=getPopularityTier(l.score.total);return(
@@ -1773,12 +1853,12 @@ function App(){
                   );})}
               </LeaderCard>
 
-              {/* Top Rated Items */}
-              <LeaderCard title="⭐ Top Rated Items">
-                {[...MENU_ITEMS].sort((a,b)=>getAvg(b.id)-getAvg(a.id)).filter(i=>getAvg(i.id)>0).slice(0,5).map((item,i)=>(
-                  <LeaderRow key={item.id} rank={i} label={item.emoji+" "+item.name} sub={getAvg(item.id).toFixed(1)+" ★ · "+getReviews(item.id).length+" review"+(getReviews(item.id).length!==1?"s":"")} color="#FFD700" onClick={()=>{setSelectedItem(item);setView("detail");}}/>
-                ))}
-                {[...MENU_ITEMS].filter(i=>getAvg(i.id)>0).length===0&&<Empty msg="No rated items yet!"/>}
+              {/* Top Rated This Week */}
+              <LeaderCard title="⭐ Top Rated This Week">
+                {weeklyTopRated.length===0?<Empty msg="No ratings this week!"/>:
+                  weeklyTopRated.slice(0,5).map((x,i)=>(
+                    <LeaderRow key={x.item.id} rank={i} label={x.item.emoji+" "+x.item.name} sub={x.avg.toFixed(1)+"★ avg · "+x.count+" review"+(x.count!==1?"s":"")} color="#FFD700" onClick={()=>{setSelectedItem(x.item);setView("detail");}}/>
+                  ))}
               </LeaderCard>
 
             </div>
@@ -1818,7 +1898,7 @@ function App(){
                 {Object.values(friends).map(f=>{
                   const isSel=selectedFriend&&selectedFriend.code===f.code;const bc=BOROUGH_COLORS[f.borough]||"#7c3aed";
                   return(<div key={f.code}>
-                    <div onClick={()=>setSelectedFriend(isSel?null:f)} style={{background:isSel?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
+                    <div onClick={()=>setSelectedFriend(isSel?null:f)} style={{background:isSel?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.9)",border:"1px solid "+(isSel?"#7c3aed":"#2a1550"),borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:36,height:36,borderRadius:"50%",background:bc+"44",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:16,color:bc,flexShrink:0,overflow:"hidden"}}>{(f.avatarUrl||avatarCache[f.username])?<img src={f.avatarUrl||avatarCache[f.username]} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:f.username[0].toUpperCase()}</div>
                         <div style={{flex:1}}>
@@ -2376,7 +2456,7 @@ function App(){
   );
 }
 
-function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView,avatarCache={}}){
+function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView,avatarCache={},onReport,currentUser}){
   const[locFilter,setLocFilter]=useState("All");
   const[locSort,setLocSort]=useState("score");
   const[locSearchQ,setLocSearchQ]=useState("");
@@ -2407,7 +2487,7 @@ function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView
             <div key={loc.address}>
               <div onClick={()=>setSelectedLoc(isSel?null:loc)} style={{background:isSel?"rgba(124,58,237,0.14)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:isSel?"13px 13px 0 0":13,padding:"11px 14px",cursor:"pointer"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:32,height:32,borderRadius:"50%",background:has?loc.tier.color+"22":"rgba(42,21,80,0.4)",border:"2px solid "+has?loc.tier.color:"#2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Bebas Neue',cursive",fontSize:i<3&&has?14:11,color:has?loc.tier.color:"#4a3070"}}>{has?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):"—"}</div>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:has?loc.tier.color+"22":"rgba(42,21,80,0.4)",border:"2px solid "+(has?loc.tier.color:"#2a1550"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Bebas Neue',cursive",fontSize:i<3&&has?14:11,color:has?loc.tier.color:"#4a3070"}}>{has?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):"—"}</div>
                   <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:12,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{loc.address}</div>
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
                       <span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {loc.borough}</span>
