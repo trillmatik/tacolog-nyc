@@ -1001,6 +1001,7 @@ function App(){
   };
   const removeFriend=code=>{
     if(!isLoggedIn)return;
+    setFriends(prev=>{
       const n={...prev};delete n[code];
       lsSet("tacolog:friends:"+session?.userId, n);
       if(session?.token&&session?.userId){
