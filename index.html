@@ -846,6 +846,8 @@ function App(){
   const [editingSocialLinks,setEditingSocialLinks]=useState(false);
   const [savingSocialLinks,setSavingSocialLinks]=useState(false);
   const [viewingFriend,setViewingFriend]=useState(null);
+  const [activitySearch,setActivitySearch]=useState("");
+  const [activityFilter,setActivityFilter]=useState("all"); // "all" | "mine" | "friends"
 
   // Boot: restore session then load reviews (pure fetch, no SDK)
   useEffect(()=>{
@@ -1248,6 +1250,15 @@ function App(){
     if(!uname||uname.length<3||uname.length>20){setUsernameError("3-20 characters.");return;}
     if(!/^[a-z0-9_]+$/.test(uname)){setUsernameError("Letters, numbers, underscores only.");return;}
     try {
+      // Check if username already taken
+      const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+      const check = await fetch(SUPABASE_URL+"/rest/v1/profiles?username=eq."+encodeURIComponent(newUsername.trim())+"&select=id",{
+        headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
+      });
+      const existing = await check.json();
+      if(Array.isArray(existing)&&existing.length>0&&existing[0].id!==session.userId){
+        setUsernameError("That username is already taken.");return;
+      }
       const res = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId, {
         method:"PATCH",
         headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
@@ -1396,6 +1407,42 @@ function App(){
               ))}
             </div>
 
+            {/* 0. TACO OF THE WEEK */}
+            {(()=>{
+              const oneWeekAgo = Date.now() - 7*24*60*60*1000;
+              const recentReviews = allReviews.filter(r=>r.date&&new Date(r.date).getTime()>oneWeekAgo);
+              if(recentReviews.length===0)return null;
+              const itemScores={};
+              recentReviews.forEach(r=>{
+                if(!itemScores[r.itemId])itemScores[r.itemId]={total:0,count:0};
+                itemScores[r.itemId].total+=r.rating;
+                itemScores[r.itemId].count+=1;
+              });
+              const best=Object.entries(itemScores).sort((a,b)=>(b[1].total/b[1].count)-(a[1].total/a[1].count)||(b[1].count-a[1].count))[0];
+              if(!best)return null;
+              const item=MENU_ITEMS.find(i=>i.id===parseInt(best[0]));
+              if(!item)return null;
+              const avg=(best[1].total/best[1].count).toFixed(1);
+              return(
+                <div onClick={()=>{setSelectedItem(item);setView("detail");}} style={{background:"linear-gradient(135deg,rgba(251,191,36,0.15),rgba(124,58,237,0.1))",border:"2px solid #fbbf24",borderRadius:16,padding:"16px",marginBottom:20,cursor:"pointer",position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:0,right:0,background:"#fbbf24",color:"#0d0520",fontFamily:"'Bebas Neue',cursive",fontSize:10,letterSpacing:2,padding:"3px 12px",borderRadius:"0 14px 0 10px"}}>THIS WEEK</div>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{fontSize:38}}>{item.emoji||"🌮"}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:11,letterSpacing:2,color:"#fbbf24",marginBottom:2}}>🏆 TACO OF THE WEEK</div>
+                      <div style={{fontWeight:900,fontSize:16,color:"#f0e6ff",marginBottom:2}}>{item.name}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{color:"#fbbf24",fontSize:13}}>{"★".repeat(Math.round(parseFloat(avg)))}{"☆".repeat(5-Math.round(parseFloat(avg)))}</span>
+                        <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,color:"#fbbf24"}}>{avg}</span>
+                        <span style={{fontSize:10,color:"#7c5cad"}}>· {best[1].count} rating{best[1].count!==1?"s":""} this week</span>
+                      </div>
+                      <div style={{fontSize:10,color:"#9d7cc7",marginTop:2}}>{item.category}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 1. NYC LOCATIONS */}
             <h2 className="st">📍 NYC LOCATIONS</h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8,marginBottom:20}}>
@@ -1534,19 +1581,37 @@ function App(){
         )}
 
         {/* ACTIVITY */}
-        {view==="activity"&&(
+        {view==="activity"&&(()=>{
+          const baseReviews = activityFilter==="mine" ? allReviews.filter(r=>r.user===currentUser)
+            : activityFilter==="friends" ? friendReviews
+            : [...allReviews,...friendReviews];
+          const filteredActivity = activitySearch.trim()
+            ? baseReviews.filter(r=>(r.item?.name||"").toLowerCase().includes(activitySearch.toLowerCase())||(r.user||"").toLowerCase().includes(activitySearch.toLowerCase())||(r.borough||"").toLowerCase().includes(activitySearch.toLowerCase())||(r.text||"").toLowerCase().includes(activitySearch.toLowerCase()))
+            : baseReviews;
+          const sortedActivity = [...filteredActivity].sort((a,b)=>b.id-a.id);
+          return(
           <div>
-            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:16}}>📋 ACTIVITY</h1>
-            {allReviewsWithFriends.length===0
-              ?<div style={{textAlign:"center",padding:"40px",color:"#5a3f80"}}><div style={{fontSize:40}}>🌮</div><p style={{marginTop:8,fontSize:13}}>No reviews yet!</p><button className="btn" style={{marginTop:14,fontSize:13}} onClick={()=>setView("menu")}>Browse Menu</button></div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>📋 ACTIVITY</h1>
+            {/* Search + Filter */}
+            <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+              <input className="inp" style={{flex:1,minWidth:160,fontSize:13}} placeholder="🔍 Search reviews, users, items..." value={activitySearch} onChange={e=>setActivitySearch(e.target.value)}/>
+              <div style={{display:"flex",gap:6}}>
+                {[{val:"all",label:"All"},{val:"mine",label:"Mine"},{val:"friends",label:"Friends"}].map(({val,label})=>(
+                  <button key={val} onClick={()=>setActivityFilter(val)} style={{background:activityFilter===val?"linear-gradient(135deg,#7c3aed,#db2777)":"rgba(26,13,53,0.9)",border:"1px solid "+activityFilter===val?"#7c3aed":"#2a1550",borderRadius:20,padding:"7px 14px",fontSize:11,fontWeight:700,color:activityFilter===val?"#fff":"#7c5cad",cursor:"pointer",fontFamily:"Nunito"}}>{label}</button>
+                ))}
+              </div>
+            </div>
+            {sortedActivity.length===0
+              ?<div style={{textAlign:"center",padding:"40px",color:"#5a3f80"}}><div style={{fontSize:40}}>🌮</div><p style={{marginTop:8,fontSize:13}}>{activitySearch?"No reviews match your search.":"No reviews yet!"}</p>{!activitySearch&&<button className="btn" style={{marginTop:14,fontSize:13}} onClick={()=>setView("menu")}>Browse Menu</button>}</div>
               :<div style={{display:"flex",flexDirection:"column",gap:9}}>
-                {[...allReviews,...friendReviews].sort((a,b)=>b.id-a.id).map(r=>(
+                {sortedActivity.map(r=>(
                   <ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={setReportTarget} currentUser={currentUser}/>
                 ))}
               </div>
             }
           </div>
-        )}
+          );
+        })()}
 
         {/* LOCATIONS */}
         {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView} avatarCache={avatarCache}/>}
