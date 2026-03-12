@@ -1004,7 +1004,7 @@ function App(){
   );
   if(session===null) return <AuthScreen sdkReady={sdkReady} onLogin={s=>{setSession(s||"guest");if(s)showToast("Welcome, "+s.username+"! 🌮");}}/>;
 
-  const NAV_ITEMS=[["home","🏠","Home"],["menu","🌮","Menu"],["activity","📋","Activity"],["locations","📍","Locations"],["friends","👥","Friends"],["leaderboard","🏆","Board"],["profile","👤","Profile"]];
+  const NAV_ITEMS=[["home","🏠","Home"],["menu","🌮","Menu"],["activity","📋","Activity"],["locations","📍","Locations"],["friends","👥","Friends"],["leaderboard","🏆","Board"],["profile","👤","Profile"],["about","ℹ️","About"]];
 
   return(
     <div style={{minHeight:"100vh",background:"#0d0520",fontFamily:"'Nunito',sans-serif",color:"#f0e6ff",overflowX:"hidden",paddingBottom:70}}>
@@ -1641,6 +1641,71 @@ function App(){
       )}
 
       {toast&&<div style={{position:"fixed",bottom:16,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#7c3aed,#db2777)",color:"#fff",padding:"9px 20px",borderRadius:30,fontWeight:700,fontSize:13,zIndex:300,boxShadow:"0 8px 30px rgba(124,58,237,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
+
+      {/* ABOUT VIEW */}
+      {view==="about"&&(
+        <div style={{maxWidth:680,margin:"0 auto",padding:"0 0 60px"}}>
+          {/* Hero */}
+          <div style={{textAlign:"center",padding:"40px 20px 32px",background:"linear-gradient(180deg,rgba(124,58,237,0.12) 0%,transparent 100%)",borderRadius:20,marginBottom:28}}>
+            <div style={{fontSize:64,marginBottom:12}}>🌮</div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:48,letterSpacing:4,background:"linear-gradient(135deg,#c4b5fd,#f9a8d4,#fbbf24)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,marginBottom:10}}>TACOLOG NYC</h1>
+            <p style={{color:"#a090c0",fontSize:15,lineHeight:1.6,maxWidth:440,margin:"0 auto"}}>The only app dedicated to rating every Taco Bell in New York City — across all 5 boroughs.</p>
+          </div>
+
+          {/* What is it */}
+          <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:16,padding:"20px 22px",marginBottom:16}}>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:2,color:"#c4b5fd",marginBottom:10}}>🤔 WHAT IS TACOLOG NYC?</div>
+            <p style={{color:"#a090c0",fontSize:13,lineHeight:1.7}}>TACOLOG NYC is a community-driven review platform built by NYC Taco Bell fans, for NYC Taco Bell fans. Rate menu items, review specific locations, track employee shoutouts, log prices, and build your reputation as a Taco Bell connoisseur across the five boroughs.</p>
+          </div>
+
+          {/* Features grid */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10,marginBottom:16}}>
+            {[
+              ["🌮","73 Menu Items","Rate anything from a Crunchy Taco to the Cantina Chicken Burrito"],
+              ["📍","85 NYC Locations","Every Taco Bell in Manhattan, Brooklyn, Bronx, Queens & Staten Island"],
+              ["⭐","Star Ratings","1–5 stars with detailed labels for each tier"],
+              ["💰","Price Tracking","Log what you paid and compare across locations"],
+              ["🚦","Safety Ratings","Green, yellow, or red — you know what it means"],
+              ["👥","Friend System","Add friends by code and see their reviews"],
+              ["🏆","Leaderboards","Top reviewers, MVP employees, hottest items"],
+              ["🎵","Anthems","Set your personal Taco Bell soundtrack"],
+            ].map(([emoji,title,desc])=>(
+              <div key={title} style={{background:"rgba(26,13,53,0.7)",border:"1px solid #2a1550",borderRadius:12,padding:"14px 12px",textAlign:"center"}}>
+                <div style={{fontSize:24,marginBottom:6}}>{emoji}</div>
+                <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:13,letterSpacing:1,color:"#c4b5fd",marginBottom:4}}>{title}</div>
+                <div style={{fontSize:10,color:"#5a3f80",lineHeight:1.4}}>{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* How it works */}
+          <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:16,padding:"20px 22px",marginBottom:16}}>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:2,color:"#c4b5fd",marginBottom:14}}>🚀 HOW IT WORKS</div>
+            {[
+              ["1","Create an account","Free, just a username + email. No credit card, no nonsense."],
+              ["2","Visit a Taco Bell","Hit up any of the 85 NYC locations."],
+              ["3","Log your order","Pick your item, rate it 1–5 stars, add notes, price, safety vibe."],
+              ["4","Build your rep","Climb the leaderboard, earn achievements, rep your borough."],
+              ["5","Add friends","Share your friend code and track your crew's Taco Bell activity."],
+            ].map(([num,title,desc])=>(
+              <div key={num} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:12}}>
+                <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#db2777)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:14,color:"#fff",flexShrink:0}}>{num}</div>
+                <div><div style={{fontWeight:800,fontSize:13,color:"#f0e6ff",marginBottom:2}}>{title}</div><div style={{fontSize:12,color:"#7c5cad"}}>{desc}</div></div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div style={{textAlign:"center",padding:"24px",background:"linear-gradient(135deg,rgba(124,58,237,0.15),rgba(219,39,119,0.1))",border:"1px solid rgba(124,58,237,0.3)",borderRadius:16}}>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:2,marginBottom:8}}>READY TO RATE THE BELL?</div>
+            <p style={{color:"#7c5cad",fontSize:12,marginBottom:16}}>Join the only community tracking every Taco Bell in NYC.</p>
+            <button className="btn" style={{fontSize:14,padding:"12px 28px"}} onClick={()=>setView(isLoggedIn?"menu":"home")}>{isLoggedIn?"Browse the Menu →":"Create Account →"}</button>
+          </div>
+
+          {/* Footer note */}
+          <p style={{textAlign:"center",fontSize:10,color:"#2a1550",marginTop:20}}>TACOLOG NYC is an independent fan project. Not affiliated with Taco Bell Corp.</p>
+        </div>
+      )}
 
       {/* PRIVACY POLICY VIEW */}
       {view==="privacy"&&(
