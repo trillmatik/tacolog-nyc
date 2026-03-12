@@ -622,12 +622,11 @@ function App(){
   const [sdkReady,setSdkReady]=useState(false);
   const [view,setViewRaw]=useState("home");
   const setView=(v)=>{
-    window.history.pushState({view:v},"",window.location.pathname);
+    try{window.history.pushState({view:v},"",window.location.pathname);}catch(e){}
     setViewRaw(v);
   };
   useEffect(()=>{
-    // Replace initial history entry
-    window.history.replaceState({view:"home"},"",window.location.pathname);
+    try{window.history.replaceState({view:"home"},"",window.location.pathname);}catch(e){}
     const onPop=(e)=>{
       if(e.state&&e.state.view){setViewRaw(e.state.view);}
       else{setViewRaw("home");}
@@ -664,6 +663,9 @@ function App(){
   const [deleteInput,setDeleteInput]=useState("");
   const [submittingReview,setSubmittingReview]=useState(false);
   const [savingEdit,setSavingEdit]=useState(false);
+  const [reportTarget,setReportTarget]=useState(null);
+  const [reportReason,setReportReason]=useState("");
+  const [reportSending,setReportSending]=useState(false);
   const [editingReview,setEditingReview]=useState(null); // review being edited
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [editingUsername,setEditingUsername]=useState(false);
