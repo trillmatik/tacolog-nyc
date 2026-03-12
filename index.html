@@ -754,20 +754,17 @@ function App(){
 
   // Boot: restore session then load reviews (pure fetch, no SDK)
   useEffect(()=>{
-    // Check for password reset token in URL hash (Supabase puts it there after reset email click)
+    // Check for password reset token FIRST — if found, skip normal boot entirely
     const hash = window.location.hash;
     if(hash && hash.includes("type=recovery") && hash.includes("access_token=")) {
       const params = new URLSearchParams(hash.replace(/^#/,""));
       const token = params.get("access_token");
       if(token) {
         setRecoveryToken(token);
-        // Clean URL
         try { window.history.replaceState({},"",window.location.pathname); } catch(e) {}
-        return; // Don't do normal boot
+        return; // Stop here — don't load session or reviews
       }
     }
-  },[]);
-  useEffect(()=>{
     (async()=>{
       const s = loadSession();
       if(s){
