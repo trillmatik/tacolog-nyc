@@ -1013,7 +1013,7 @@ function App(){
   const currentUser=isLoggedIn?session.username:"Guest";
 
   const allReviews=Object.entries(reviews).flatMap(([id,rs])=>rs.map(r=>({...r,item:MENU_ITEMS.find(i=>i.id===+id)}))).sort((a,b)=>b.id-a.id);
-  const friendReviews=Object.values(friends).flatMap(f=>f.reviews);
+  const friendReviews=Object.values(friends).filter(f=>f.isMutual).flatMap(f=>f.reviews);
   const allReviewsWithFriends=[...allReviews,...friendReviews];
   const reviewsByLocation={};
   allReviewsWithFriends.forEach(r=>{if(r.location){if(!reviewsByLocation[r.location])reviewsByLocation[r.location]=[];reviewsByLocation[r.location].push(r);}});
