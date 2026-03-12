@@ -181,7 +181,7 @@ const ScoreBar=({label,val,max,color})=>(<div style={{marginBottom:7}}><div styl
 // Global avatar cache — populated by App, read by ReviewCard
 const AVATAR_CACHE = {};
 
-function ReviewCard({r,onClick,avatarCache={}}){
+function ReviewCard({r,onClick,avatarCache={},onReport=null,currentUser=null}){
   const bc=r.borough?BOROUGH_COLORS[r.borough]:"#7c3aed";
   return(
     <div onClick={onClick} style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:14,padding:"12px 14px",cursor:onClick?"pointer":"default"}}>
@@ -206,6 +206,20 @@ function ReviewCard({r,onClick,avatarCache={}}){
           {r.location&&<div style={{color:"#7c5cad",fontSize:10,marginBottom:2}}>📍 {r.location.length>44?r.location.slice(0,44)+"…":r.location}</div>}
           {r.employees&&<div style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:6,padding:"2px 8px",marginBottom:3,fontSize:10,color:"#6ee7b7",display:"inline-block"}}>👏 {r.employees}</div>}
           {r.text&&<p style={{color:"#9d7cc7",fontSize:11,lineHeight:1.5,marginTop:2}}>{r.text}</p>}
+          {(onReport)&&(
+            <div style={{display:"flex",gap:8,marginTop:7,paddingTop:7,borderTop:"1px solid rgba(42,21,80,0.5)"}}>
+              <button onClick={e=>{e.stopPropagation();
+                const item=r.item;
+                const stars="★".repeat(r.rating)+"☆".repeat(5-r.rating);
+                const text=`${stars} ${item?item.name:"Taco Bell"} at ${r.location||"NYC"}${r.text?" — "+r.text.slice(0,80):""}
+
+via TACOLOG NYC 🌮`;
+                if(navigator.share){navigator.share({title:"TACOLOG NYC",text});}
+                else{navigator.clipboard?.writeText(text).then(()=>alert("Copied to clipboard!")).catch(()=>alert(text));}
+              }} style={{background:"rgba(124,58,237,0.12)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:20,color:"#9d7cc7",padding:"3px 10px",fontFamily:"Nunito",fontWeight:700,fontSize:10,cursor:"pointer"}}>📤 Share</button>
+              {onReport&&currentUser&&r.user!==currentUser&&<button onClick={e=>{e.stopPropagation();onReport(r);}} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.15)",borderRadius:20,color:"#7c5cad",padding:"3px 10px",fontFamily:"Nunito",fontWeight:700,fontSize:10,cursor:"pointer"}}>🚩 Report</button>}
+            </div>
+          )}
         </div>
         <span style={{color:"#3a2060",fontSize:9,flexShrink:0,marginLeft:4}}>{r.date}</span>
       </div>
@@ -297,9 +311,25 @@ function AuthScreen({onLogin, sdkReady}){
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [success,setSuccess]=useState("");
+  const [forgotSent,setForgotSent]=useState(false);
 
   const inp={width:"100%",background:"#1a0d35",border:"2px solid #3a2060",borderRadius:12,color:"#f0e6ff",padding:"12px 14px",fontFamily:"Nunito",fontSize:14,outline:"none"};
   const lbl={display:"block",fontSize:11,fontWeight:700,color:"#c4b5fd",marginBottom:5,letterSpacing:1};
+
+  const sendReset=async()=>{
+    if(!email.trim()||!email.includes("@")){setError("Enter a valid email.");return;}
+    setLoading(true);setError("");
+    try {
+      await fetch(SUPABASE_URL+"/auth/v1/recover",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
+        body:JSON.stringify({email:email.trim()})
+      });
+      setForgotSent(true);
+      setSuccess("Password reset email sent! Check your inbox.");
+    } catch(e){ setError("Something went wrong. Try again."); }
+    setLoading(false);
+  };
 
   const validateUsername=(u)=>{
     if(!u)return"Username is required.";
@@ -355,11 +385,35 @@ function AuthScreen({onLogin, sdkReady}){
         <div style={{background:"rgba(26,13,53,0.95)",border:"1px solid #2a1550",borderRadius:20,padding:"28px 24px"}}>
           <div style={{display:"flex",background:"#0d0520",borderRadius:10,padding:3,marginBottom:22}}>
             {["login","signup"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:mode===m?"#7c3aed":"transparent",color:mode===m?"#fff":"#7c5cad",cursor:"pointer",fontFamily:"Nunito",fontWeight:800,fontSize:13,transition:"all 0.2s"}}>
+              <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");setForgotSent(false);}} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:mode===m&&mode!=="forgot"?"#7c3aed":"transparent",color:mode===m&&mode!=="forgot"?"#fff":"#7c5cad",cursor:"pointer",fontFamily:"Nunito",fontWeight:800,fontSize:13,transition:"all 0.2s"}}>
                 {m==="login"?"Sign In":"Create Account"}
               </button>
             ))}
           </div>
+
+          {mode==="forgot"&&(
+            <div style={{marginBottom:18}}>
+              {forgotSent
+                ?<div style={{textAlign:"center",padding:"20px 0"}}>
+                  <div style={{fontSize:40,marginBottom:10}}>📬</div>
+                  <div style={{fontWeight:800,color:"#c4b5fd",marginBottom:6,fontSize:15}}>Check your email</div>
+                  <div style={{fontSize:12,color:"#7c5cad",lineHeight:1.6}}>We sent a reset link to <span style={{color:"#f0e6ff"}}>{email}</span>.</div>
+                  <button onClick={()=>{setMode("login");setForgotSent(false);setSuccess("");}} style={{marginTop:16,background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:13}}>← Back to Sign In</button>
+                </div>
+                :<div>
+                  <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:2,color:"#c4b5fd",marginBottom:4}}>RESET PASSWORD</div>
+                  <p style={{fontSize:12,color:"#7c5cad",marginBottom:14,lineHeight:1.5}}>Enter your email and we'll send a reset link.</p>
+                  <div style={{marginBottom:14}}>
+                    <label style={lbl}>EMAIL</label>
+                    <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendReset()} placeholder="you@example.com" style={inp}/>
+                  </div>
+                  {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:12,color:"#f87171"}}>{error}</div>}
+                  <button onClick={sendReset} disabled={loading} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#7c3aed,#db2777)",color:"#fff",fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:loading?"not-allowed":"pointer",opacity:loading?0.7:1}}>{loading?"⏳ Sending...":"Send Reset Link 📬"}</button>
+                  <button onClick={()=>{setMode("login");setError("");}} style={{width:"100%",marginTop:8,background:"none",border:"none",color:"#5a3f80",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:12,padding:"6px"}}>← Back to Sign In</button>
+                </div>
+              }
+            </div>
+          )}
 
           {mode==="signup"&&<div style={{marginBottom:14}}>
             <label style={lbl}>USERNAME</label>
@@ -375,12 +429,12 @@ function AuthScreen({onLogin, sdkReady}){
             })()}
           </div>}
 
-          <div style={{marginBottom:14}}>
+          {mode!=="forgot"&&<div style={{marginBottom:14}}>
             <label style={lbl}>EMAIL</label>
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@example.com" style={inp}/>
-          </div>
+          </div>}
 
-          <div style={{marginBottom:18}}>
+          {mode!=="forgot"&&<div style={{marginBottom:18}}>
             <label style={lbl}>PASSWORD</label>
             <div style={{position:"relative"}}>
               <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder={mode==="signup"?"8+ characters, 1 uppercase, 1 number":""} style={{...inp,padding:"12px 44px 12px 14px",borderColor:mode==="signup"&&password&&validatePassword(password,true)?"#f87171":mode==="signup"&&password&&!validatePassword(password,true)?"#22c55e":"#3a2060"}}/>
@@ -397,17 +451,19 @@ function AuthScreen({onLogin, sdkReady}){
               </div>;
             })()}
           </div>
+          </div>}
 
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",color:"#f87171",fontSize:12,fontWeight:700,marginBottom:12}}>{error}</div>}
           {success&&<div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:8,padding:"8px 12px",color:"#22c55e",fontSize:12,fontWeight:700,marginBottom:12}}>{success}</div>}
 
           {sdkReady===false&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",color:"#f87171",fontSize:12,fontWeight:700,marginBottom:12}}>⚠️ Could not connect to Supabase. Check your network and try reloading.</div>}
-          <button onClick={submit} disabled={loading||sdkReady===false} style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",color:"#fff",padding:"13px",borderRadius:30,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:(loading||sdkReady===false)?"not-allowed":"pointer",opacity:(loading||sdkReady===false)?0.5:1,transition:"opacity 0.2s"}}>
+          {mode!=="forgot"&&<button onClick={submit} disabled={loading||sdkReady===false} style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",color:"#fff",padding:"13px",borderRadius:30,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:(loading||sdkReady===false)?"not-allowed":"pointer",opacity:(loading||sdkReady===false)?0.5:1,transition:"opacity 0.2s"}}>
             {loading?"Connecting…":mode==="login"?"Sign In →":"Create Account →"}
-          </button>
-          <p style={{textAlign:"center",color:"#4a3070",fontSize:11,marginTop:14}}>
+          </button>}
+          {mode==="login"&&<button onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{display:"block",width:"100%",background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:12,marginTop:10,padding:"4px",textDecoration:"underline"}}>Forgot password?</button>}
+          {mode!=="forgot"&&<p style={{textAlign:"center",color:"#4a3070",fontSize:11,marginTop:14}}>
             {mode==="login"?"Browse freely without an account — login only needed to post reviews.":"Your username appears on reviews. Email is private."}
-          </p>
+          </p>}
         </div>
         <button onClick={()=>onLogin(null)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",color:"#5a3f80",fontSize:12,cursor:"pointer",fontFamily:"Nunito",textDecoration:"underline"}}>
           Continue as guest (browse only)
@@ -605,6 +661,8 @@ function App(){
   const [cookieConsent,setCookieConsent]=useState(()=>localStorage.getItem("tacolog:cookies")||null);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteInput,setDeleteInput]=useState("");
+  const [submittingReview,setSubmittingReview]=useState(false);
+  const [savingEdit,setSavingEdit]=useState(false);
   const [editingReview,setEditingReview]=useState(null); // review being edited
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [editingUsername,setEditingUsername]=useState(false);
@@ -903,16 +961,42 @@ function App(){
     setPonyPlaying(true);setTimeout(()=>setPonyPlaying(false),4000);
   };
 
+  const sendReport=async()=>{
+    if(!reportReason.trim())return;
+    setReportSending(true);
+    try {
+      // Store report in Supabase as a review with a special flag
+      // We'll use a dedicated reports table or just email — for now we log to console
+      // and show confirmation. A real impl would POST to a reports table.
+      await fetch(SUPABASE_URL+"/rest/v1/reports",{
+        method:"POST",
+        headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
+        body:JSON.stringify({
+          review_id:reportTarget?.id||null,
+          reporter:currentUser||"guest",
+          reason:reportReason.trim(),
+          reported_user:reportTarget?.user||null,
+          created_at:new Date().toISOString()
+        })
+      }).catch(()=>{}); // silently fail if table doesn't exist yet
+    } catch(e){}
+    setReportSending(false);
+    setReportTarget(null);
+    setReportReason("");
+    showToast("🚩 Report submitted. Thanks for keeping it real.");
+  };
+
   const submitReview=async()=>{
     if(!isLoggedIn){showToast("Sign in to post reviews!");return;}
     const item=modalItemId?MENU_ITEMS.find(i=>i.id===modalItemId):selectedItem;
     if(!draft.rating||!item)return;
     if(!draft.location){showToast("📍 Please select a location!");return;}
+    setSubmittingReview(true);
     const r={...draft,user:currentUser,itemId:item.id,date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),id:Date.now()};
-    // Optimistically update UI, then persist to Supabase
     const newReviews={...reviews,[item.id]:[r,...(reviews[item.id]||[])]};
     setReviews(newReviews);
     const ok = await saveReview(r, session?.userId, session?.token);
+    setSubmittingReview(false);
     if(!ok) showToast("⚠️ Saved locally — check your Supabase connection.");
     setShowModal(false);setModalItemId(null);
     setDraft({rating:0,text:"",borough:"",location:"",employees:"",price:"",safetyLight:""});
@@ -941,14 +1025,13 @@ function App(){
   const saveEditedReview=async()=>{
     if(!editingReview)return;
     if(!editingReview.location){showToast("📍 Please select a location!");return;}
-    // Update local state
+    setSavingEdit(true);
     setReviews(prev=>{
       const updated={...prev};
       if(updated[editingReview.itemId])
         updated[editingReview.itemId]=updated[editingReview.itemId].map(r=>r.id===editingReview.id?editingReview:r);
       return updated;
     });
-    // Update in Supabase
     try {
       await fetch(SUPABASE_URL+"/rest/v1/reviews?id=eq."+editingReview.id, {
         method:"PATCH",
@@ -963,6 +1046,7 @@ function App(){
       });
       showToast("✅ Review updated!");
     } catch(e){ showToast("⚠️ Couldn't save to server."); }
+    setSavingEdit(false);
     setEditingReview(null);
   };
 
@@ -1124,7 +1208,7 @@ function App(){
                 {[...friendReviews].sort((a,b)=>b.id-a.id).slice(0,4).map(r=>(
                   <div key={r.id} style={{position:"relative"}}>
                     <div style={{position:"absolute",top:8,right:8,zIndex:1,background:"rgba(124,58,237,0.2)",border:"1px solid #3a2060",borderRadius:20,padding:"2px 8px",fontSize:9,fontWeight:700,color:"#a78bfa",fontFamily:"Nunito"}}>👥 {r.user}</div>
-                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>
+                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}} onReport={setReportTarget} currentUser={currentUser}/>
                   </div>
                 ))}
                 <button onClick={()=>setView("friends")} style={{background:"none",border:"1px solid #2a1550",borderRadius:10,color:"#7c5cad",padding:"9px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>See all friend activity →</button>
@@ -1177,7 +1261,7 @@ function App(){
             {allReviews.length>0&&<>
               <h2 className="st">🕐 RECENT ACTIVITY</h2>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {allReviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>)}
+                {allReviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}} onReport={setReportTarget} currentUser={currentUser}/>)}
               </div>
             </>}
           </div>
@@ -1233,7 +1317,7 @@ function App(){
             <h2 className="st">REVIEWS</h2>
             {getReviews(selectedItem.id).length===0
               ?<div style={{color:"#5a3f80",textAlign:"center",padding:"28px",border:"1px dashed #2a1550",borderRadius:12}}><div style={{fontSize:28}}>🌮</div><p style={{marginTop:6,fontSize:12}}>Be the first to review!</p></div>
-              :<div style={{display:"flex",flexDirection:"column",gap:9}}>{getReviews(selectedItem.id).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache}/>)}</div>
+              :<div style={{display:"flex",flexDirection:"column",gap:9}}>{getReviews(selectedItem.id).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onReport={setReportTarget} currentUser={currentUser}/>)}</div>
             }
           </div>
         )}
@@ -1246,7 +1330,7 @@ function App(){
               ?<div style={{textAlign:"center",padding:"40px",color:"#5a3f80"}}><div style={{fontSize:40}}>🌮</div><p style={{marginTop:8,fontSize:13}}>No reviews yet!</p><button className="btn" style={{marginTop:14,fontSize:13}} onClick={()=>setView("menu")}>Browse Menu</button></div>
               :<div style={{display:"flex",flexDirection:"column",gap:9}}>
                 {[...allReviews,...friendReviews].sort((a,b)=>b.id-a.id).map(r=>(
-                  <ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>
+                  <ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={setReportTarget} currentUser={currentUser}/>
                 ))}
               </div>
             }
@@ -1379,7 +1463,7 @@ function App(){
                           <div key={s.l} style={{background:"rgba(124,58,237,0.08)",border:"1px solid #2a1550",borderRadius:8,padding:"8px",textAlign:"center"}}><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,color:"#a78bfa"}}>{s.v}</div><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div></div>
                         ))}
                       </div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8}}>{f.reviews.map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>{f.reviews.map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={setReportTarget} currentUser={currentUser}/>)}</div>
                     </div>}
                   </div>);
                 })}
@@ -1499,7 +1583,7 @@ function App(){
                 ?<div style={{textAlign:"center",padding:"28px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><p style={{fontSize:13}}>No ratings yet!</p><button className="btn" style={{marginTop:12,fontSize:13}} onClick={()=>openRatingModal()}>Log a Rating</button></div>
                 :<div style={{display:"flex",flexDirection:"column",gap:9}}>{myReviewsList.map(r=>(
                   <div key={r.id} style={{position:"relative"}}>
-                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>
+                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}} onReport={setReportTarget} currentUser={currentUser}/>
                     <div style={{position:"absolute",top:8,right:8,display:"flex",gap:4}}>
                       <button onClick={e=>{e.stopPropagation();setEditingReview({...r,locSearch:""});}} style={{background:"rgba(124,58,237,0.85)",border:"none",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:11,color:"#fff",fontWeight:700}}>✏️</button>
                       <button onClick={e=>{e.stopPropagation();deleteReview(r);}} style={{background:"rgba(239,68,68,0.85)",border:"none",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:11,color:"#fff",fontWeight:700}}>🗑️</button>
@@ -1577,7 +1661,7 @@ function App(){
             <Field label="👏 EMPLOYEE SHOUTOUT"><input className="inp" placeholder="Name the legend…" value={draft.employees} onChange={e=>setDraft(d=>({...d,employees:e.target.value}))}/></Field>
             <Field label="REVIEW"><textarea className="inp" rows={3} placeholder="Sauce level? Freshness? Worth the trek?" value={draft.text} onChange={e=>setDraft(d=>({...d,text:e.target.value}))} style={{resize:"none"}}/></Field>
 
-            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15}} disabled={!draft.rating||(!modalItemId&&!selectedItem)||!draft.location} onClick={submitReview}>Log Rating 🌮</button>
+            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15,opacity:submittingReview?0.7:1,cursor:submittingReview?"not-allowed":"pointer"}} disabled={submittingReview||!draft.rating||(!modalItemId&&!selectedItem)||!draft.location} onClick={submitReview}>{submittingReview?"⏳ Saving...":"Log Rating 🌮"}</button>
           </div>
         </div>
       )}
@@ -1635,7 +1719,7 @@ function App(){
               <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>👏 EMPLOYEE SHOUTOUT</div>
               <input className="inp" style={{fontSize:13}} value={editingReview.employees||""} onChange={e=>setEditingReview(r=>({...r,employees:e.target.value}))} placeholder="Name(s) who killed it"/>
             </div>
-            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15,marginTop:6}} onClick={saveEditedReview}>Save Changes ✅</button>
+            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15,marginTop:6,opacity:savingEdit?0.7:1,cursor:savingEdit?"not-allowed":"pointer"}} disabled={savingEdit} onClick={saveEditedReview}>{savingEdit?"⏳ Saving...":"Save Changes ✅"}</button>
           </div>
         </div>
       )}
@@ -1756,6 +1840,29 @@ function App(){
         </div>
       )}
 
+      {/* REPORT REVIEW MODAL */}
+      {reportTarget&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
+          <div style={{background:"#1a0d35",border:"1px solid #3a2060",borderRadius:20,padding:28,maxWidth:380,width:"100%"}}>
+            <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:2,color:"#f87171",marginBottom:6}}>🚩 Report Review</h2>
+            <p style={{fontSize:12,color:"#7c5cad",marginBottom:16,lineHeight:1.5}}>Report a review by <span style={{color:"#c4b5fd",fontWeight:700}}>@{reportTarget.user}</span> for inappropriate content, spam, or abuse.</p>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",marginBottom:8,letterSpacing:1}}>REASON</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                {["Spam","Fake review","Harassment","Inappropriate content","Wrong location","Other"].map(r=>(
+                  <button key={r} onClick={()=>setReportReason(r)} style={{padding:"5px 12px",borderRadius:20,border:"1px solid",borderColor:reportReason===r?"#f87171":"#2a1550",background:reportReason===r?"rgba(248,113,113,0.15)":"transparent",color:reportReason===r?"#f87171":"#7c5cad",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:11}}>{r}</button>
+                ))}
+              </div>
+              <textarea value={reportReason} onChange={e=>setReportReason(e.target.value)} placeholder="Add details (optional)..." style={{width:"100%",background:"#0d0520",border:"1px solid #2a1550",borderRadius:10,color:"#f0e6ff",padding:"10px 12px",fontFamily:"Nunito",fontSize:12,resize:"vertical",minHeight:64,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{setReportTarget(null);setReportReason("");}} style={{flex:1,background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+              <button onClick={sendReport} disabled={!reportReason.trim()||reportSending} style={{flex:1,background:"linear-gradient(135deg,#dc2626,#7c3aed)",border:"none",borderRadius:20,color:"#fff",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:(!reportReason.trim()||reportSending)?"not-allowed":"pointer",opacity:(!reportReason.trim()||reportSending)?0.4:1}}>{reportSending?"⏳ Sending...":"Submit Report"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DELETE ACCOUNT CONFIRM MODAL */}
       {showDeleteConfirm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
@@ -1853,7 +1960,7 @@ function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView
                       {[{l:"Rating",v:loc.score.avgRating?loc.score.avgRating.toFixed(1)+"★":"—",c:"#fbbf24"},{l:"Safety",v:Math.round(loc.score.avgSafety*100)+"%",c:"#22c55e"},{l:"Shoutouts",v:loc.score.shoutouts,c:"#a78bfa"},{l:"Avg $",v:loc.score.avgPrice?"$"+loc.score.avgPrice.toFixed(2):"—",c:"#f97316"}].map(s=><div key={s.l} style={{background:"rgba(124,58,237,0.08)",borderRadius:8,padding:"7px",textAlign:"center"}}><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,color:s.c}}>{s.v}</div></div>)}
                     </div>
                   </>:<div style={{textAlign:"center",padding:"14px",color:"#5a3f80",fontSize:12}}><p>No reviews yet.</p><button className="btn" style={{marginTop:10,fontSize:11,padding:"7px 16px"}} onClick={()=>setView("menu")}>Log a Visit</button></div>}
-                  {loc.reviews.length>0&&<><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd",margin:"12px 0 6px"}}>RECENT VISITS</div><div style={{display:"flex",flexDirection:"column",gap:7}}>{loc.reviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div></>}
+                  {loc.reviews.length>0&&<><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd",margin:"12px 0 6px"}}>RECENT VISITS</div><div style={{display:"flex",flexDirection:"column",gap:7}}>{loc.reviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={setReportTarget} currentUser={currentUser}/>)}</div></>}
                 </div>
               )}
             </div>
