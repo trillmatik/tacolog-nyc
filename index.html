@@ -1627,71 +1627,6 @@ function App(){
       )}
 
       {toast&&<div style={{position:"fixed",bottom:16,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#7c3aed,#db2777)",color:"#fff",padding:"9px 20px",borderRadius:30,fontWeight:700,fontSize:13,zIndex:300,boxShadow:"0 8px 30px rgba(124,58,237,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
-    </div>
-  );
-}
-
-function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView}){
-  const[locFilter,setLocFilter]=useState("All");
-  const[locSort,setLocSort]=useState("score");
-  const[locSearchQ,setLocSearchQ]=useState("");
-  const[selectedLoc,setSelectedLoc]=useState(null);
-  const scoredLocs=ALL_LOCATIONS.map(({borough,address})=>{const s=locationScores[address];return{borough,address,score:s,tier:getPopularityTier(s?s.total:null),reviews:reviewsByLocation[address]||[]};})
-    .filter(l=>locFilter==="All"||l.borough===locFilter)
-    .filter(l=>l.address.toLowerCase().includes(locSearchQ.toLowerCase()))
-    .sort((a,b)=>{if(locSort==="score")return(b.score?b.score.total:-1)-(a.score?a.score.total:-1);if(locSort==="safety")return(b.score?b.score.safetyScore:-1)-(a.score?a.score.safetyScore:-1);if(locSort==="shoutouts")return(b.score?b.score.shoutoutScore:-1)-(a.score?a.score.shoutoutScore:-1);if(locSort==="price")return(b.score?b.score.priceScore:-1)-(a.score?a.score.priceScore:-1);return a.address.localeCompare(b.address);});
-  return(
-    <div>
-      <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:6}}>📍 LOCATION RANKINGS</h1>
-      <p style={{color:"#7c5cad",marginBottom:14,fontSize:12}}>Rating · Safety · Shoutouts · Price Value</p>
-      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-        <input className="inp" style={{flex:1,minWidth:140}} placeholder="🔍 Search…" value={locSearchQ} onChange={e=>setLocSearchQ(e.target.value)}/>
-        <select className="inp" style={{width:"auto",minWidth:140}} value={locSort} onChange={e=>setLocSort(e.target.value)}>
-          <option value="score">Overall Score</option><option value="safety">Safest</option><option value="shoutouts">Most Shoutouts</option><option value="price">Best Value</option><option value="alpha">A–Z</option>
-        </select>
-      </div>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        {["All","Manhattan","Brooklyn","Bronx","Queens","Staten Island"].map(b=><button key={b} className="pb" onClick={()=>setLocFilter(b)} style={{borderColor:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#2a1550",background:locFilter===b?BOROUGH_COLORS[b]||"#7c3aed"+"28":"transparent",color:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#9d7cc7"}}>{b}</button>)}
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:9}}>
-        {scoredLocs.map((loc,i)=>{
-          const isSel=selectedLoc&&selectedLoc.address===loc.address;
-          const bc=BOROUGH_COLORS[loc.borough]||"#7c3aed";
-          const has=loc.score!==null&&loc.score!==undefined;
-          return(
-            <div key={loc.address}>
-              <div onClick={()=>setSelectedLoc(isSel?null:loc)} style={{background:isSel?"rgba(124,58,237,0.14)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:isSel?"13px 13px 0 0":13,padding:"11px 14px",cursor:"pointer"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:32,height:32,borderRadius:"50%",background:has?loc.tier.color+"22":"rgba(42,21,80,0.4)",border:"2px solid "+has?loc.tier.color:"#2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Bebas Neue',cursive",fontSize:i<3&&has?14:11,color:has?loc.tier.color:"#4a3070"}}>{has?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):"—"}</div>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:12,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{loc.address}</div>
-                    <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-                      <span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {loc.borough}</span>
-                      {has&&<span style={{background:loc.tier.bg,color:loc.tier.color,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>{loc.tier.icon} {loc.tier.label}</span>}
-                      {loc.reviews.length>0&&<span style={{color:"#5a3f80",fontSize:9}}>{loc.reviews.length} review{loc.reviews.length!==1?"s":""}</span>}
-                    </div>
-                  </div>
-                  {has?<div style={{width:40,height:40,borderRadius:"50%",background:"conic-gradient("+loc.tier.color+" "+loc.score.total*3.6+"deg,#1a0d35 0deg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:30,height:30,borderRadius:"50%",background:"#0d0520",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}><span style={{fontFamily:"'Bebas Neue',cursive",fontSize:12,color:loc.tier.color,lineHeight:1}}>{loc.score.total}</span></div></div>
-                  :<div style={{width:40,height:40,borderRadius:"50%",background:"rgba(42,21,80,0.4)",border:"2px solid #2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>❓</div>}
-                </div>
-              </div>
-              {isSel&&(
-                <div style={{background:"rgba(26,13,53,0.7)",border:"1px solid #7c3aed",borderTop:"none",borderRadius:"0 0 13px 13px",padding:"12px 14px"}}>
-                  {has?<>
-                    <ScoreBar label="⭐ Rating (35pts)" val={loc.score.ratingScore} max={35} color="#fbbf24"/>
-                    <ScoreBar label="🚦 Safety (30pts)" val={loc.score.safetyScore} max={30} color="#22c55e"/>
-                    <ScoreBar label="👏 Shoutouts (20pts)" val={loc.score.shoutoutScore} max={20} color="#a78bfa"/>
-                    <ScoreBar label="💰 Price Value (15pts)" val={loc.score.priceScore} max={15} color="#f97316"/>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:10}}>
-                      {[{l:"Rating",v:loc.score.avgRating?loc.score.avgRating.toFixed(1)+"★":"—",c:"#fbbf24"},{l:"Safety",v:Math.round(loc.score.avgSafety*100)+"%",c:"#22c55e"},{l:"Shoutouts",v:loc.score.shoutouts,c:"#a78bfa"},{l:"Avg $",v:loc.score.avgPrice?"$"+loc.score.avgPrice.toFixed(2):"—",c:"#f97316"}].map(s=><div key={s.l} style={{background:"rgba(124,58,237,0.08)",borderRadius:8,padding:"7px",textAlign:"center"}}><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,color:s.c}}>{s.v}</div></div>)}
-                    </div>
-                  </>:<div style={{textAlign:"center",padding:"14px",color:"#5a3f80",fontSize:12}}><p>No reviews yet.</p><button className="btn" style={{marginTop:10,fontSize:11,padding:"7px 16px"}} onClick={()=>setView("menu")}>Log a Visit</button></div>}
-                  {loc.reviews.length>0&&<><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd",margin:"12px 0 6px"}}>RECENT VISITS</div><div style={{display:"flex",flexDirection:"column",gap:7}}>{loc.reviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div></>}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
 
       {/* PRIVACY POLICY VIEW */}
       {view==="privacy"&&(
@@ -1781,6 +1716,72 @@ function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView}){
+  const[locFilter,setLocFilter]=useState("All");
+  const[locSort,setLocSort]=useState("score");
+  const[locSearchQ,setLocSearchQ]=useState("");
+  const[selectedLoc,setSelectedLoc]=useState(null);
+  const scoredLocs=ALL_LOCATIONS.map(({borough,address})=>{const s=locationScores[address];return{borough,address,score:s,tier:getPopularityTier(s?s.total:null),reviews:reviewsByLocation[address]||[]};})
+    .filter(l=>locFilter==="All"||l.borough===locFilter)
+    .filter(l=>l.address.toLowerCase().includes(locSearchQ.toLowerCase()))
+    .sort((a,b)=>{if(locSort==="score")return(b.score?b.score.total:-1)-(a.score?a.score.total:-1);if(locSort==="safety")return(b.score?b.score.safetyScore:-1)-(a.score?a.score.safetyScore:-1);if(locSort==="shoutouts")return(b.score?b.score.shoutoutScore:-1)-(a.score?a.score.shoutoutScore:-1);if(locSort==="price")return(b.score?b.score.priceScore:-1)-(a.score?a.score.priceScore:-1);return a.address.localeCompare(b.address);});
+  return(
+    <div>
+      <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:6}}>📍 LOCATION RANKINGS</h1>
+      <p style={{color:"#7c5cad",marginBottom:14,fontSize:12}}>Rating · Safety · Shoutouts · Price Value</p>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        <input className="inp" style={{flex:1,minWidth:140}} placeholder="🔍 Search…" value={locSearchQ} onChange={e=>setLocSearchQ(e.target.value)}/>
+        <select className="inp" style={{width:"auto",minWidth:140}} value={locSort} onChange={e=>setLocSort(e.target.value)}>
+          <option value="score">Overall Score</option><option value="safety">Safest</option><option value="shoutouts">Most Shoutouts</option><option value="price">Best Value</option><option value="alpha">A–Z</option>
+        </select>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        {["All","Manhattan","Brooklyn","Bronx","Queens","Staten Island"].map(b=><button key={b} className="pb" onClick={()=>setLocFilter(b)} style={{borderColor:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#2a1550",background:locFilter===b?BOROUGH_COLORS[b]||"#7c3aed"+"28":"transparent",color:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#9d7cc7"}}>{b}</button>)}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:9}}>
+        {scoredLocs.map((loc,i)=>{
+          const isSel=selectedLoc&&selectedLoc.address===loc.address;
+          const bc=BOROUGH_COLORS[loc.borough]||"#7c3aed";
+          const has=loc.score!==null&&loc.score!==undefined;
+          return(
+            <div key={loc.address}>
+              <div onClick={()=>setSelectedLoc(isSel?null:loc)} style={{background:isSel?"rgba(124,58,237,0.14)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:isSel?"13px 13px 0 0":13,padding:"11px 14px",cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:has?loc.tier.color+"22":"rgba(42,21,80,0.4)",border:"2px solid "+has?loc.tier.color:"#2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Bebas Neue',cursive",fontSize:i<3&&has?14:11,color:has?loc.tier.color:"#4a3070"}}>{has?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):"—"}</div>
+                  <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:12,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{loc.address}</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                      <span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {loc.borough}</span>
+                      {has&&<span style={{background:loc.tier.bg,color:loc.tier.color,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>{loc.tier.icon} {loc.tier.label}</span>}
+                      {loc.reviews.length>0&&<span style={{color:"#5a3f80",fontSize:9}}>{loc.reviews.length} review{loc.reviews.length!==1?"s":""}</span>}
+                    </div>
+                  </div>
+                  {has?<div style={{width:40,height:40,borderRadius:"50%",background:"conic-gradient("+loc.tier.color+" "+loc.score.total*3.6+"deg,#1a0d35 0deg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:30,height:30,borderRadius:"50%",background:"#0d0520",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}><span style={{fontFamily:"'Bebas Neue',cursive",fontSize:12,color:loc.tier.color,lineHeight:1}}>{loc.score.total}</span></div></div>
+                  :<div style={{width:40,height:40,borderRadius:"50%",background:"rgba(42,21,80,0.4)",border:"2px solid #2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>❓</div>}
+                </div>
+              </div>
+              {isSel&&(
+                <div style={{background:"rgba(26,13,53,0.7)",border:"1px solid #7c3aed",borderTop:"none",borderRadius:"0 0 13px 13px",padding:"12px 14px"}}>
+                  {has?<>
+                    <ScoreBar label="⭐ Rating (35pts)" val={loc.score.ratingScore} max={35} color="#fbbf24"/>
+                    <ScoreBar label="🚦 Safety (30pts)" val={loc.score.safetyScore} max={30} color="#22c55e"/>
+                    <ScoreBar label="👏 Shoutouts (20pts)" val={loc.score.shoutoutScore} max={20} color="#a78bfa"/>
+                    <ScoreBar label="💰 Price Value (15pts)" val={loc.score.priceScore} max={15} color="#f97316"/>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:10}}>
+                      {[{l:"Rating",v:loc.score.avgRating?loc.score.avgRating.toFixed(1)+"★":"—",c:"#fbbf24"},{l:"Safety",v:Math.round(loc.score.avgSafety*100)+"%",c:"#22c55e"},{l:"Shoutouts",v:loc.score.shoutouts,c:"#a78bfa"},{l:"Avg $",v:loc.score.avgPrice?"$"+loc.score.avgPrice.toFixed(2):"—",c:"#f97316"}].map(s=><div key={s.l} style={{background:"rgba(124,58,237,0.08)",borderRadius:8,padding:"7px",textAlign:"center"}}><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,color:s.c}}>{s.v}</div></div>)}
+                    </div>
+                  </>:<div style={{textAlign:"center",padding:"14px",color:"#5a3f80",fontSize:12}}><p>No reviews yet.</p><button className="btn" style={{marginTop:10,fontSize:11,padding:"7px 16px"}} onClick={()=>setView("menu")}>Log a Visit</button></div>}
+                  {loc.reviews.length>0&&<><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd",margin:"12px 0 6px"}}>RECENT VISITS</div><div style={{display:"flex",flexDirection:"column",gap:7}}>{loc.reviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div></>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 }
