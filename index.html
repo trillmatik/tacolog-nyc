@@ -563,7 +563,21 @@ function App(){
   const [session,setSession]=useState(null); // null=show auth, {username,token,friendCode}=logged in, "guest"=browsing
   const [authChecked,setAuthChecked]=useState(false);
   const [sdkReady,setSdkReady]=useState(false);
-  const [view,setView]=useState("home");
+  const [view,setViewRaw]=useState("home");
+  const setView=(v)=>{
+    window.history.pushState({view:v},"",window.location.pathname);
+    setViewRaw(v);
+  };
+  useEffect(()=>{
+    // Replace initial history entry
+    window.history.replaceState({view:"home"},"",window.location.pathname);
+    const onPop=(e)=>{
+      if(e.state&&e.state.view){setViewRaw(e.state.view);}
+      else{setViewRaw("home");}
+    };
+    window.addEventListener("popstate",onPop);
+    return()=>window.removeEventListener("popstate",onPop);
+  },[]);
   const [selectedItem,setSelectedItem]=useState(null);
   const [reviews,setReviews]=useState({});
   const [filterCat,setFilterCat]=useState("All");
@@ -1240,7 +1254,7 @@ function App(){
         )}
 
         {/* LOCATIONS */}
-        {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView}/>}
+        {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView} avatarCache={avatarCache}/>}
 
         {/* LEADERBOARD */}
         {view==="leaderboard"&&(()=>{
@@ -1720,7 +1734,7 @@ function App(){
   );
 }
 
-function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView}){
+function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView,avatarCache={}}){
   const[locFilter,setLocFilter]=useState("All");
   const[locSort,setLocSort]=useState("score");
   const[locSearchQ,setLocSearchQ]=useState("");
