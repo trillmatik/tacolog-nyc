@@ -429,12 +429,13 @@ function AuthScreen({onLogin, sdkReady}){
             })()}
           </div>}
 
-          {mode!=="forgot"&&<div style={{marginBottom:14}}>
+          {mode!=="forgot"&&<>
+          <div style={{marginBottom:14}}>
             <label style={lbl}>EMAIL</label>
             <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@example.com" style={inp}/>
-          </div>}
+          </div>
 
-          {mode!=="forgot"&&<div style={{marginBottom:18}}>
+          <div style={{marginBottom:18}}>
             <label style={lbl}>PASSWORD</label>
             <div style={{position:"relative"}}>
               <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder={mode==="signup"?"8+ characters, 1 uppercase, 1 number":""} style={{...inp,padding:"12px 44px 12px 14px",borderColor:mode==="signup"&&password&&validatePassword(password,true)?"#f87171":mode==="signup"&&password&&!validatePassword(password,true)?"#22c55e":"#3a2060"}}/>
@@ -451,7 +452,7 @@ function AuthScreen({onLogin, sdkReady}){
               </div>;
             })()}
           </div>
-          </div>}
+          </>}
 
           {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",color:"#f87171",fontSize:12,fontWeight:700,marginBottom:12}}>{error}</div>}
           {success&&<div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:8,padding:"8px 12px",color:"#22c55e",fontSize:12,fontWeight:700,marginBottom:12}}>{success}</div>}
