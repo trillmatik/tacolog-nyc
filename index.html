@@ -301,6 +301,85 @@ function MenuDropdown({value,onChange}){
   );
 }
 
+// ─── RESET PASSWORD SCREEN ────────────────────────────────────────────────────
+function ResetPasswordScreen({token, onDone}){
+  const [password,setPassword]=useState("");
+  const [confirm,setConfirm]=useState("");
+  const [showPw,setShowPw]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [success,setSuccess]=useState(false);
+
+  const checks=[
+    {label:"8+ characters",ok:password.length>=8},
+    {label:"Uppercase letter",ok:/[A-Z]/.test(password)},
+    {label:"Number",ok:/[0-9]/.test(password)},
+    {label:"Passwords match",ok:password.length>0&&password===confirm},
+  ];
+  const valid=checks.every(c=>c.ok);
+
+  const submit=async()=>{
+    if(!valid)return;
+    setLoading(true);setError("");
+    try {
+      const res=await fetch(SUPABASE_URL+"/auth/v1/user",{
+        method:"PUT",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+token},
+        body:JSON.stringify({password})
+      });
+      const data=await res.json();
+      if(data.error||!res.ok){
+        setError(data.error?.message||data.msg||"Failed to update password. The link may have expired.");
+      } else {
+        setSuccess(true);
+        setTimeout(()=>onDone(),2500);
+      }
+    } catch(e){ setError("Something went wrong. Try again."); }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0d0520",display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"'Nunito',sans-serif",color:"#f0e6ff"}}>
+      <div style={{width:"100%",maxWidth:380}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:52,marginBottom:8}}>🔐</div>
+          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,background:"linear-gradient(135deg,#c4b5fd,#f9a8d4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>SET NEW PASSWORD</h1>
+          <p style={{color:"#5a3f80",fontSize:13,marginTop:6}}>Choose a strong password for your TACOLOG account.</p>
+        </div>
+        <div style={{background:"rgba(26,13,53,0.95)",border:"1px solid #2a1550",borderRadius:20,padding:"28px 24px"}}>
+          {success
+            ?<div style={{textAlign:"center",padding:"20px 0"}}>
+              <div style={{fontSize:48,marginBottom:12}}>✅</div>
+              <div style={{fontWeight:800,fontSize:16,color:"#c4b5fd",marginBottom:8}}>Password Updated!</div>
+              <p style={{fontSize:13,color:"#7c5cad"}}>Redirecting you to sign in…</p>
+            </div>
+            :<>
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#c4b5fd",marginBottom:5,letterSpacing:1}}>NEW PASSWORD</label>
+                <div style={{position:"relative"}}>
+                  <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="8+ characters" style={{width:"100%",background:"#1a0d35",border:"2px solid #3a2060",borderRadius:12,color:"#f0e6ff",padding:"12px 44px 12px 14px",fontFamily:"Nunito",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+                  <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#5a3f80",fontSize:16}}>{showPw?"🙈":"👁"}</button>
+                </div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#c4b5fd",marginBottom:5,letterSpacing:1}}>CONFIRM PASSWORD</label>
+                <input type={showPw?"text":"password"} value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="Repeat password" style={{width:"100%",background:"#1a0d35",border:"2px solid "+(confirm&&password===confirm?"#22c55e":confirm?"#f87171":"#3a2060"),borderRadius:12,color:"#f0e6ff",padding:"12px 14px",fontFamily:"Nunito",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              {password&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:16}}>
+                {checks.map((c,i)=><span key={i} style={{fontSize:10,fontWeight:700,color:c.ok?"#22c55e":"#f87171",background:c.ok?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.1)",borderRadius:20,padding:"3px 9px"}}>{c.ok?"✓":"✗"} {c.label}</span>)}
+              </div>}
+              {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#f87171"}}>{error}</div>}
+              <button onClick={submit} disabled={!valid||loading} style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",color:"#fff",padding:"13px",borderRadius:30,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:(!valid||loading)?"not-allowed":"pointer",opacity:(!valid||loading)?0.5:1,transition:"opacity 0.2s"}}>
+                {loading?"⏳ Updating...":"Update Password →"}
+              </button>
+            </>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
 function AuthScreen({onLogin, sdkReady}){
   const [mode,setMode]=useState("login");
@@ -618,6 +697,7 @@ function reviewsArrayToMap(arr){
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App(){
   const [session,setSession]=useState(null); // null=show auth, {username,token,friendCode}=logged in, "guest"=browsing
+  const [recoveryToken,setRecoveryToken]=useState(null); // set when user arrives via password reset link
   const [authChecked,setAuthChecked]=useState(false);
   const [sdkReady,setSdkReady]=useState(false);
   const [view,setViewRaw]=useState("home");
@@ -673,6 +753,20 @@ function App(){
   const [usernameError,setUsernameError]=useState("");
 
   // Boot: restore session then load reviews (pure fetch, no SDK)
+  useEffect(()=>{
+    // Check for password reset token in URL hash (Supabase puts it there after reset email click)
+    const hash = window.location.hash;
+    if(hash && hash.includes("type=recovery") && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.replace(/^#/,""));
+      const token = params.get("access_token");
+      if(token) {
+        setRecoveryToken(token);
+        // Clean URL
+        try { window.history.replaceState({},"",window.location.pathname); } catch(e) {}
+        return; // Don't do normal boot
+      }
+    }
+  },[]);
   useEffect(()=>{
     (async()=>{
       const s = loadSession();
@@ -1089,6 +1183,7 @@ function App(){
       <div style={{color:"#5a3f80",fontSize:13}}>{sdkReady===false?"Could not connect to server — check your network.":"Connecting to the Bell…"}</div>
     </div>
   );
+  if(recoveryToken) return <ResetPasswordScreen token={recoveryToken} onDone={()=>{setRecoveryToken(null);showToast("✅ Password updated! Please sign in.");}} />;
   if(session===null) return <AuthScreen sdkReady={sdkReady} onLogin={s=>{setSession(s||"guest");if(s)showToast("Welcome, "+s.username+"! 🌮");}}/>;
 
   const NAV_ITEMS=[["home","🏠","Home"],["menu","🌮","Menu"],["activity","📋","Activity"],["locations","📍","Locations"],["friends","👥","Friends"],["leaderboard","🏆","Board"],["profile","👤","Profile"],["about","ℹ️","About"]];
