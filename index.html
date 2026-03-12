@@ -210,94 +210,6 @@ function ReviewCard({r,onClick,avatarCache={}}){
         <span style={{color:"#3a2060",fontSize:9,flexShrink:0,marginLeft:4}}>{r.date}</span>
       </div>
 
-      {/* PRIVACY POLICY VIEW */}
-      {view==="privacy"&&(
-        <div style={{maxWidth:680,margin:"0 auto",padding:"0 0 40px"}}>
-          <button onClick={()=>setView("home")} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:14,marginBottom:18,display:"flex",alignItems:"center",gap:5,padding:0}}>← Back</button>
-          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:2,marginBottom:6}}>🔒 Privacy Policy</h1>
-          <p style={{fontSize:11,color:"#5a3f80",marginBottom:20}}>Effective: March 11, 2026</p>
-          {[
-            ["1. Information We Collect","We collect your email (for login), username, profile picture (optional), reviews and ratings, friend codes, and anthem links. We do not collect payment info or government IDs."],
-            ["2. How We Use It","To operate the app, display your reviews, enable friend connections, and improve the service. We do not sell your data."],
-            ["3. What's Public","Your username, profile picture, reviews, friend code, and anthem are visible to all users. Your email is never shown publicly."],
-            ["4. Third-Party Services","We use Supabase (database/auth), Google Fonts, and GitHub Pages. These services have their own privacy policies."],
-            ["5. Cookies & Storage","We use localStorage to keep you logged in. We do not currently use tracking cookies. If this changes, we'll update this policy and ask for your consent."],
-            ["6. Data Deletion","You can delete your account at any time from your Profile page. All your data will be removed within 30 days. You can also email us at tacolognyc@gmail.com."],
-            ["7. Children","This app is not directed at children under 13. We do not knowingly collect data from children."],
-            ["8. Your Rights","You have the right to access, correct, or delete your personal data. Contact us at tacolognyc@gmail.com."],
-            ["9. Changes","We may update this policy. The effective date will reflect any changes. Continued use constitutes acceptance."],
-            ["10. Contact","tacolognyc@gmail.com"],
-          ].map(([h,b])=><div key={h} style={{marginBottom:18}}>
-            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,letterSpacing:1.5,color:"#c4b5fd",marginBottom:4}}>{h}</div>
-            <p style={{fontSize:13,color:"#a090c0",lineHeight:1.6}}>{b}</p>
-          </div>)}
-          <p style={{fontSize:11,color:"#3a2060",marginTop:20}}>Not affiliated with Taco Bell Corp.</p>
-        </div>
-      )}
-
-      {/* TERMS OF SERVICE VIEW */}
-      {view==="tos"&&(
-        <div style={{maxWidth:680,margin:"0 auto",padding:"0 0 40px"}}>
-          <button onClick={()=>setView("home")} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:14,marginBottom:18,display:"flex",alignItems:"center",gap:5,padding:0}}>← Back</button>
-          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:2,marginBottom:6}}>📜 Terms of Service</h1>
-          <p style={{fontSize:11,color:"#5a3f80",marginBottom:20}}>Effective: March 11, 2026</p>
-          {[
-            ["1. Eligibility","You must be at least 13 years old to use TACOLOG NYC. By using the service, you confirm you meet this requirement."],
-            ["2. Account Responsibilities","Provide accurate info. Keep your credentials secure. You are responsible for all activity on your account."],
-            ["3. User Content","You own your reviews and content. By posting, you grant TACOLOG NYC a license to display it. You confirm you have the right to post it."],
-            ["4. Prohibited Conduct","No false reviews, harassment, impersonation, spam, scraping, illegal activity, or tampering with the service."],
-            ["5. Intellectual Property","The TACOLOG NYC name, design, and code are owned by us. User content belongs to users."],
-            ["6. Disclaimer","TACOLOG NYC is provided as-is. We are not affiliated with Taco Bell Corp. Reviews are user-submitted opinions — always verify independently."],
-            ["7. Limitation of Liability","We are not liable for indirect, incidental, or consequential damages from use of the service."],
-            ["8. Termination","We may suspend accounts that violate these terms. You may delete your account at any time."],
-            ["9. Governing Law","These terms are governed by the laws of New York State."],
-            ["10. Contact","tacolognyc@gmail.com"],
-          ].map(([h,b])=><div key={h} style={{marginBottom:18}}>
-            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,letterSpacing:1.5,color:"#c4b5fd",marginBottom:4}}>{h}</div>
-            <p style={{fontSize:13,color:"#a090c0",lineHeight:1.6}}>{b}</p>
-          </div>)}
-        </div>
-      )}
-
-      {/* DELETE ACCOUNT CONFIRM MODAL */}
-      {showDeleteConfirm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
-          <div style={{background:"#1a0d35",border:"1px solid #3a2060",borderRadius:20,padding:28,maxWidth:380,width:"100%"}}>
-            <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:2,color:"#f87171",marginBottom:8}}>⚠️ Delete Account</h2>
-            <p style={{fontSize:13,color:"#a090c0",marginBottom:16,lineHeight:1.6}}>This will permanently delete your account, all your reviews, and all your data. This cannot be undone.</p>
-            <p style={{fontSize:12,color:"#c4b5fd",marginBottom:8,fontWeight:700}}>Type <span style={{color:"#f87171"}}>DELETE</span> to confirm:</p>
-            <input className="inp" value={deleteInput} onChange={e=>setDeleteInput(e.target.value.toUpperCase())} placeholder="DELETE" style={{marginBottom:16,borderColor:"#f87171"}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{setShowDeleteConfirm(false);setDeleteInput("");}} style={{flex:1,background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteInput!=="DELETE"} style={{flex:1,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:20,color:"#fff",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:deleteInput==="DELETE"?"pointer":"not-allowed",opacity:deleteInput==="DELETE"?1:0.4}}>Delete Forever</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <div style={{textAlign:"center",padding:"24px 16px",borderTop:"1px solid #1a0d35",marginTop:20}}>
-        <div style={{fontSize:11,color:"#3a2060",fontFamily:"Nunito"}}>
-          <span style={{marginRight:12}}>🌮 TACOLOG NYC</span>
-          <a onClick={()=>setView("privacy")} style={{color:"#5a3f80",cursor:"pointer",marginRight:12,textDecoration:"underline"}}>Privacy Policy</a>
-          <a onClick={()=>setView("tos")} style={{color:"#5a3f80",cursor:"pointer",textDecoration:"underline"}}>Terms of Service</a>
-        </div>
-        <div style={{fontSize:10,color:"#2a1550",marginTop:6}}>Not affiliated with Taco Bell Corp.</div>
-      </div>
-
-      {/* COOKIE CONSENT BANNER */}
-      {!cookieConsent&&(
-        <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(13,5,32,0.97)",borderTop:"1px solid #2a1550",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,zIndex:9999,flexWrap:"wrap"}}>
-          <div style={{fontSize:12,color:"#c4b5fd",fontFamily:"Nunito",flex:1,minWidth:200}}>
-            🍪 We use browser storage to keep you logged in. No tracking cookies yet.{" "}
-            <a onClick={()=>setView("privacy")} style={{color:"#a78bfa",cursor:"pointer",textDecoration:"underline"}}>Learn more</a>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{localStorage.setItem("tacolog:cookies","declined");setCookieConsent("declined");}} style={{background:"none",border:"1px solid #3a2060",borderRadius:20,color:"#5a3f80",padding:"7px 14px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>Decline</button>
-            <button onClick={()=>{localStorage.setItem("tacolog:cookies","accepted");setCookieConsent("accepted");}} style={{background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>Accept</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1780,6 +1692,95 @@ function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView
           );
         })}
       </div>
+
+      {/* PRIVACY POLICY VIEW */}
+      {view==="privacy"&&(
+        <div style={{maxWidth:680,margin:"0 auto",padding:"0 0 40px"}}>
+          <button onClick={()=>setView("home")} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:14,marginBottom:18,display:"flex",alignItems:"center",gap:5,padding:0}}>← Back</button>
+          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:2,marginBottom:6}}>🔒 Privacy Policy</h1>
+          <p style={{fontSize:11,color:"#5a3f80",marginBottom:20}}>Effective: March 11, 2026</p>
+          {[
+            ["1. Information We Collect","We collect your email (for login), username, profile picture (optional), reviews and ratings, friend codes, and anthem links. We do not collect payment info or government IDs."],
+            ["2. How We Use It","To operate the app, display your reviews, enable friend connections, and improve the service. We do not sell your data."],
+            ["3. What's Public","Your username, profile picture, reviews, friend code, and anthem are visible to all users. Your email is never shown publicly."],
+            ["4. Third-Party Services","We use Supabase (database/auth), Google Fonts, and GitHub Pages. These services have their own privacy policies."],
+            ["5. Cookies & Storage","We use localStorage to keep you logged in. We do not currently use tracking cookies. If this changes, we'll update this policy and ask for your consent."],
+            ["6. Data Deletion","You can delete your account at any time from your Profile page. All your data will be removed within 30 days. You can also email us at tacolognyc@gmail.com."],
+            ["7. Children","This app is not directed at children under 13. We do not knowingly collect data from children."],
+            ["8. Your Rights","You have the right to access, correct, or delete your personal data. Contact us at tacolognyc@gmail.com."],
+            ["9. Changes","We may update this policy. The effective date will reflect any changes. Continued use constitutes acceptance."],
+            ["10. Contact","tacolognyc@gmail.com"],
+          ].map(([h,b])=><div key={h} style={{marginBottom:18}}>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,letterSpacing:1.5,color:"#c4b5fd",marginBottom:4}}>{h}</div>
+            <p style={{fontSize:13,color:"#a090c0",lineHeight:1.6}}>{b}</p>
+          </div>)}
+          <p style={{fontSize:11,color:"#3a2060",marginTop:20}}>Not affiliated with Taco Bell Corp.</p>
+        </div>
+      )}
+
+      {/* TERMS OF SERVICE VIEW */}
+      {view==="tos"&&(
+        <div style={{maxWidth:680,margin:"0 auto",padding:"0 0 40px"}}>
+          <button onClick={()=>setView("home")} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:14,marginBottom:18,display:"flex",alignItems:"center",gap:5,padding:0}}>← Back</button>
+          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:2,marginBottom:6}}>📜 Terms of Service</h1>
+          <p style={{fontSize:11,color:"#5a3f80",marginBottom:20}}>Effective: March 11, 2026</p>
+          {[
+            ["1. Eligibility","You must be at least 13 years old to use TACOLOG NYC. By using the service, you confirm you meet this requirement."],
+            ["2. Account Responsibilities","Provide accurate info. Keep your credentials secure. You are responsible for all activity on your account."],
+            ["3. User Content","You own your reviews and content. By posting, you grant TACOLOG NYC a license to display it. You confirm you have the right to post it."],
+            ["4. Prohibited Conduct","No false reviews, harassment, impersonation, spam, scraping, illegal activity, or tampering with the service."],
+            ["5. Intellectual Property","The TACOLOG NYC name, design, and code are owned by us. User content belongs to users."],
+            ["6. Disclaimer","TACOLOG NYC is provided as-is. We are not affiliated with Taco Bell Corp. Reviews are user-submitted opinions — always verify independently."],
+            ["7. Limitation of Liability","We are not liable for indirect, incidental, or consequential damages from use of the service."],
+            ["8. Termination","We may suspend accounts that violate these terms. You may delete your account at any time."],
+            ["9. Governing Law","These terms are governed by the laws of New York State."],
+            ["10. Contact","tacolognyc@gmail.com"],
+          ].map(([h,b])=><div key={h} style={{marginBottom:18}}>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,letterSpacing:1.5,color:"#c4b5fd",marginBottom:4}}>{h}</div>
+            <p style={{fontSize:13,color:"#a090c0",lineHeight:1.6}}>{b}</p>
+          </div>)}
+        </div>
+      )}
+
+      {/* DELETE ACCOUNT CONFIRM MODAL */}
+      {showDeleteConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:20}}>
+          <div style={{background:"#1a0d35",border:"1px solid #3a2060",borderRadius:20,padding:28,maxWidth:380,width:"100%"}}>
+            <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:2,color:"#f87171",marginBottom:8}}>⚠️ Delete Account</h2>
+            <p style={{fontSize:13,color:"#a090c0",marginBottom:16,lineHeight:1.6}}>This will permanently delete your account, all your reviews, and all your data. This cannot be undone.</p>
+            <p style={{fontSize:12,color:"#c4b5fd",marginBottom:8,fontWeight:700}}>Type <span style={{color:"#f87171"}}>DELETE</span> to confirm:</p>
+            <input className="inp" value={deleteInput} onChange={e=>setDeleteInput(e.target.value.toUpperCase())} placeholder="DELETE" style={{marginBottom:16,borderColor:"#f87171"}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{setShowDeleteConfirm(false);setDeleteInput("");}} style={{flex:1,background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+              <button onClick={deleteAccount} disabled={deleteInput!=="DELETE"} style={{flex:1,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:20,color:"#fff",padding:"10px",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:deleteInput==="DELETE"?"pointer":"not-allowed",opacity:deleteInput==="DELETE"?1:0.4}}>Delete Forever</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <div style={{textAlign:"center",padding:"24px 16px",borderTop:"1px solid #1a0d35",marginTop:20}}>
+        <div style={{fontSize:11,color:"#3a2060",fontFamily:"Nunito"}}>
+          <span style={{marginRight:12}}>🌮 TACOLOG NYC</span>
+          <a onClick={()=>setView("privacy")} style={{color:"#5a3f80",cursor:"pointer",marginRight:12,textDecoration:"underline"}}>Privacy Policy</a>
+          <a onClick={()=>setView("tos")} style={{color:"#5a3f80",cursor:"pointer",textDecoration:"underline"}}>Terms of Service</a>
+        </div>
+        <div style={{fontSize:10,color:"#2a1550",marginTop:6}}>Not affiliated with Taco Bell Corp.</div>
+      </div>
+
+      {/* COOKIE CONSENT BANNER */}
+      {!cookieConsent&&(
+        <div style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(13,5,32,0.97)",borderTop:"1px solid #2a1550",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,zIndex:9999,flexWrap:"wrap"}}>
+          <div style={{fontSize:12,color:"#c4b5fd",fontFamily:"Nunito",flex:1,minWidth:200}}>
+            🍪 We use browser storage to keep you logged in. No tracking cookies yet.{" "}
+            <a onClick={()=>setView("privacy")} style={{color:"#a78bfa",cursor:"pointer",textDecoration:"underline"}}>Learn more</a>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{localStorage.setItem("tacolog:cookies","declined");setCookieConsent("declined");}} style={{background:"none",border:"1px solid #3a2060",borderRadius:20,color:"#5a3f80",padding:"7px 14px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>Decline</button>
+            <button onClick={()=>{localStorage.setItem("tacolog:cookies","accepted");setCookieConsent("accepted");}} style={{background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>Accept</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
