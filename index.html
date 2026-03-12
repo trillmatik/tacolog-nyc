@@ -940,6 +940,7 @@ function App(){
   const weeklyLeaderboard=Object.values(weeklyByUser).sort((a,b)=>b.count-a.count);
 
   const addFriend=async()=>{
+    if(!isLoggedIn){showToast("Sign in to add friends!");return;}
     // Normalize input — make dashes optional
     const raw=addCodeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
     const body=raw.startsWith("TACO")?raw.slice(4):raw;
@@ -999,7 +1000,7 @@ function App(){
     showToast("Account deleted.");
   };
   const removeFriend=code=>{
-    setFriends(prev=>{
+    if(!isLoggedIn)return;
       const n={...prev};delete n[code];
       lsSet("tacolog:friends:"+session?.userId, n);
       if(session?.token&&session?.userId){
@@ -1024,7 +1025,7 @@ function App(){
   };
 
   const saveAnthem=()=>{
-    let newAnthem=null;
+    if(!isLoggedIn){showToast("Sign in to set an anthem!");return;}
     if(anthemDraft.url.trim()){
       const linkType=getAnthemLinkType(anthemDraft.url.trim());
       newAnthem={title:anthemDraft.title||"My Anthem",artist:anthemDraft.artist||"",url:anthemDraft.url.trim(),isFile:false,linkType};
@@ -1517,11 +1518,17 @@ function App(){
         {view==="friends"&&(
           <div>
             <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>👥 FRIENDS</h1>
+            {!isLoggedIn&&<div style={{background:"rgba(124,58,237,0.1)",border:"1px solid #7c3aed",borderRadius:14,padding:"20px",marginBottom:16,textAlign:"center"}}>
+              <div style={{fontSize:32,marginBottom:8}}>🔐</div>
+              <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:2,color:"#c4b5fd",marginBottom:6}}>SIGN IN TO ADD FRIENDS</div>
+              <p style={{fontSize:12,color:"#7c5cad",marginBottom:14}}>Create an account to get your friend code and connect with other Taco Bell fans.</p>
+              <button className="btn" style={{fontSize:13,padding:"10px 24px"}} onClick={()=>setSession(null)}>Sign In / Create Account</button>
+            </div>}
             {isLoggedIn&&<div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.2),rgba(219,39,119,0.15))",border:"1px solid #7c3aed",borderRadius:14,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
               <div><div style={{fontSize:9,color:"#a78bfa",fontWeight:700,letterSpacing:2,marginBottom:3}}>YOUR FRIEND CODE</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:2}}>{session.friendCode}</div></div>
               <button className="btn" style={{fontSize:11,padding:"7px 14px"}} onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(session.friendCode);showToast("📋 Copied!");}}>📋 Copy</button>
             </div>}
-            <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:13,padding:"14px",marginBottom:16}}>
+            {isLoggedIn&&<div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:13,padding:"14px",marginBottom:16}}>
               <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:16,letterSpacing:2,color:"#c4b5fd",marginBottom:8}}>ADD A FRIEND</div>
               <div style={{display:"flex",gap:8,marginBottom:6}}>
                 <input className="inp" style={{fontFamily:"'Bebas Neue',cursive",letterSpacing:1.5,fontSize:13}} placeholder="TACO-XXXX-XXXX-XXXX" value={addCodeInput} onChange={e=>{setAddCodeInput(e.target.value.toUpperCase());setAddCodeError("");}} onKeyDown={e=>e.key==="Enter"&&addFriend()} maxLength={19}/>
@@ -1529,8 +1536,8 @@ function App(){
               </div>
               {addCodeError&&<div style={{color:"#f87171",fontSize:11,fontWeight:700,marginBottom:4}}>{addCodeError}</div>}
               <div style={{fontSize:10,color:"#7c5cad"}}>🧪 {Object.keys(DEMO_FRIENDS).map((code,i)=>(<span key={code}><span style={{color:"#c4b5fd",cursor:"pointer",textDecoration:"underline",fontFamily:"'Bebas Neue',cursive",fontSize:11}} onClick={()=>{setAddCodeInput(code);setAddCodeError("");}}>{code}</span>{i<2&&" · "}</span>))}</div>
-            </div>
-            {Object.keys(friends).length===0
+            </div>}
+            {isLoggedIn&&Object.keys(friends).length===0
               ?<div style={{textAlign:"center",padding:"32px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><div style={{fontSize:36}}>👥</div><p style={{marginTop:8,fontSize:12}}>No friends yet!</p></div>
               :<div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {Object.values(friends).map(f=>{
