@@ -123,20 +123,105 @@ const CATEGORIES=["All",...new Set(MENU_ITEMS.map(i=>i.category))];
 const STAR_LABELS=["","Tragic 💀","Meh 😐","Decent 👍","Solid ⭐","Perfection 🔥"];
 const BOROUGH_COLORS={Manhattan:"#7c3aed",Brooklyn:"#db2777",Bronx:"#f59e0b",Queens:"#10b981","Staten Island":"#3b82f6"};
 const ACHIEVEMENT_DEFS=[
-  {id:"first_review",icon:"🌮",name:"First Bite",desc:"Log your first review",check:rs=>rs.length>=1},
-  {id:"five_reviews",icon:"⭐",name:"Regular",desc:"Log 5 reviews",check:rs=>rs.length>=5},
-  {id:"ten_reviews",icon:"🏆",name:"Bell Head",desc:"Log 10 reviews",check:rs=>rs.length>=10},
-  {id:"shoutout_3",icon:"👏",name:"Community Hero",desc:"Give 3 employee shoutouts",check:rs=>rs.filter(r=>r.employees).length>=3},
-  {id:"perfect_5",icon:"💯",name:"Perfectionist",desc:"Rate something 5 stars",check:rs=>rs.some(r=>r.rating===5)},
-  {id:"all_green",icon:"🟢",name:"Safety First",desc:"Log 3 green light visits",check:rs=>rs.filter(r=>r.safetyLight==="green").length>=3},
-  {id:"price_watcher",icon:"💰",name:"Budget Bell",desc:"Log a price under $3",check:rs=>rs.some(r=>r.price&&parseFloat(r.price)<3)},
-  {id:"borough_bx",icon:"🔥",name:"Bronx Loyalist",desc:"Log 3 Bronx reviews",check:rs=>rs.filter(r=>r.borough==="Bronx").length>=3},
-  {id:"borough_bk",icon:"💜",name:"Brooklyn Bred",desc:"Log 3 Brooklyn reviews",check:rs=>rs.filter(r=>r.borough==="Brooklyn").length>=3},
-  {id:"borough_mn",icon:"🗽",name:"Manhattan Mogul",desc:"Log 3 Manhattan reviews",check:rs=>rs.filter(r=>r.borough==="Manhattan").length>=3},
-  {id:"borough_qn",icon:"👑",name:"Queens Rep",desc:"Log 3 Queens reviews",check:rs=>rs.filter(r=>r.borough==="Queens").length>=3},
-  {id:"borough_si",icon:"🌉",name:"SI Insider",desc:"Log 3 Staten Island reviews",check:rs=>rs.filter(r=>r.borough==="Staten Island").length>=3},
-  {id:"all_boroughs",icon:"🗺️",name:"Five Borough Legend",desc:"Review in all 5 boroughs",check:rs=>new Set(rs.map(r=>r.borough).filter(Boolean)).size>=5},
-  {id:"crunchwrap_fan",icon:"🫓",name:"Crunchwrap Connoisseur",desc:"Rate the Crunchwrap 5 stars",check:rs=>rs.some(r=>r.itemId===23&&r.rating===5)},
+  // ── FIRST STEPS (5–15 pts) ───────────────────────────────────────────────────
+  {id:"first_review",icon:"🌮",name:"First Bite",desc:"Log your first review. Welcome to the cult.",pts:5,check:rs=>rs.length>=1},
+  {id:"perfect_5",icon:"💯",name:"Delusional Optimist",desc:"Give something 5 stars. You're either right or lying.",pts:5,check:rs=>rs.some(r=>r.rating===5)},
+  {id:"one_star",icon:"💀",name:"Absolutely Not",desc:"Give something 1 star. We respect the honesty.",pts:5,check:rs=>rs.some(r=>r.rating===1)},
+  {id:"price_logged",icon:"💵",name:"Receipts",desc:"Log a price on any review.",pts:5,check:rs=>rs.some(r=>r.price)},
+  {id:"first_shoutout",icon:"👏",name:"Name Dropper",desc:"Give your first employee shoutout.",pts:5,check:rs=>rs.filter(r=>r.employees).length>=1},
+  {id:"first_safety",icon:"🚦",name:"Vibes Check",desc:"Log a safety light for the first time.",pts:5,check:rs=>rs.some(r=>r.safetyLight)},
+  {id:"anthem_set",icon:"🎵",name:"Bell Bop",desc:"Set your Tacolog Anthem. Genre doesn't matter. We're not judging.",pts:10,check:rs=>false}, // checked separately
+  {id:"wrote_review",icon:"✍️",name:"Yelp Who?",desc:"Write actual text in a review. Paragraphs optional.",pts:10,check:rs=>rs.some(r=>r.text&&r.text.trim().length>0)},
+  {id:"borough_logged",icon:"📍",name:"Local",desc:"Log your first borough on a review.",pts:10,check:rs=>rs.some(r=>r.borough)},
+  {id:"location_logged",icon:"🗺️",name:"GPS Activated",desc:"Log a specific location on a review.",pts:10,check:rs=>rs.some(r=>r.location)},
+
+  // ── REVIEW COUNTS (10–100 pts) ────────────────────────────────────────────────
+  {id:"five_reviews",icon:"⭐",name:"Regular",desc:"Log 5 reviews. You're basically staff at this point.",pts:10,check:rs=>rs.length>=5},
+  {id:"ten_reviews",icon:"🔔",name:"Bell Head",desc:"10 reviews. Your friends are worried about you.",pts:20,check:rs=>rs.length>=10},
+  {id:"twenty_five",icon:"🎯",name:"Committed",desc:"25 reviews. This is a lifestyle, not a phase.",pts:35,check:rs=>rs.length>=25},
+  {id:"fifty_reviews",icon:"🏅",name:"Half Century",desc:"50 reviews. Have you considered therapy?",pts:50,check:rs=>rs.length>=50},
+  {id:"one_hundred",icon:"💫",name:"Centurion of the Bell",desc:"100 reviews. You are the Bell.",pts:100,check:rs=>rs.length>=100},
+  {id:"two_fifty",icon:"👾",name:"No Life (Respectfully)",desc:"250 reviews. A monument will be erected in your honor.",pts:200,check:rs=>rs.length>=250},
+  {id:"five_hundred",icon:"🌀",name:"Transcended",desc:"500 reviews. You have achieved oneness with the Crunchwrap.",pts:500,check:rs=>rs.length>=500},
+
+  // ── RATINGS (5–50 pts) ───────────────────────────────────────────────────────
+  {id:"all_fives",icon:"🌟",name:"Perpetually Impressed",desc:"Give 5 five-star ratings. Touch grass occasionally.",pts:15,check:rs=>rs.filter(r=>r.rating===5).length>=5},
+  {id:"all_ones",icon:"☠️",name:"Chronic Hater",desc:"Give 5 one-star ratings. You're built different.",pts:15,check:rs=>rs.filter(r=>r.rating===1).length>=5},
+  {id:"mixed_bag",icon:"🎲",name:"It's Complicated",desc:"Give ratings across all 5 star values.",pts:20,check:rs=>new Set(rs.map(r=>r.rating)).size>=5},
+  {id:"avg_above_4",icon:"✨",name:"Glass Half Full",desc:"Maintain a 4+ average rating across 10+ reviews.",pts:30,check:rs=>rs.length>=10&&rs.reduce((a,r)=>a+r.rating,0)/rs.length>=4},
+  {id:"avg_below_2",icon:"🤮",name:"Masochist",desc:"Maintain a sub-2 average across 10+ reviews. Why are you doing this to yourself.",pts:30,check:rs=>rs.length>=10&&rs.reduce((a,r)=>a+r.rating,0)/rs.length<2},
+  {id:"ten_fives",icon:"🔮",name:"Stan Account",desc:"Give 10 five-star ratings.",pts:25,check:rs=>rs.filter(r=>r.rating===5).length>=10},
+
+  // ── BOROUGHS (10–75 pts) ──────────────────────────────────────────────────────
+  {id:"borough_bx",icon:"🔥",name:"Bronx Loyalist",desc:"Log 3 Bronx reviews. The real ones know.",pts:10,check:rs=>rs.filter(r=>r.borough==="Bronx").length>=3},
+  {id:"borough_bk",icon:"💜",name:"Brooklyn Bred",desc:"Log 3 Brooklyn reviews.",pts:10,check:rs=>rs.filter(r=>r.borough==="Brooklyn").length>=3},
+  {id:"borough_mn",icon:"🗽",name:"Manhattan Mogul",desc:"Log 3 Manhattan reviews. Probably paid $14 for a Chalupa.",pts:10,check:rs=>rs.filter(r=>r.borough==="Manhattan").length>=3},
+  {id:"borough_qn",icon:"👑",name:"Queens Rep",desc:"Log 3 Queens reviews.",pts:10,check:rs=>rs.filter(r=>r.borough==="Queens").length>=3},
+  {id:"borough_si",icon:"🌉",name:"SI Insider",desc:"Log 3 Staten Island reviews. Respect the trek.",pts:10,check:rs=>rs.filter(r=>r.borough==="Staten Island").length>=3},
+  {id:"all_boroughs",icon:"🗺️",name:"Five Borough Legend",desc:"Review in all 5 boroughs. You've done the most.",pts:50,check:rs=>new Set(rs.map(r=>r.borough).filter(Boolean)).size>=5},
+  {id:"bronx_ten",icon:"🦁",name:"Bronx Native",desc:"10 Bronx reviews. You live there spiritually.",pts:25,check:rs=>rs.filter(r=>r.borough==="Bronx").length>=10},
+  {id:"bk_ten",icon:"🌆",name:"Brooklyn Forever",desc:"10 Brooklyn reviews.",pts:25,check:rs=>rs.filter(r=>r.borough==="Brooklyn").length>=10},
+  {id:"mn_ten",icon:"🏙️",name:"Midtown Menace",desc:"10 Manhattan reviews. Your rent is too high for this.",pts:25,check:rs=>rs.filter(r=>r.borough==="Manhattan").length>=10},
+  {id:"qn_ten",icon:"🌍",name:"Queens World",desc:"10 Queens reviews.",pts:25,check:rs=>rs.filter(r=>r.borough==="Queens").length>=10},
+  {id:"si_ten",icon:"⛴️",name:"Ferry Rider",desc:"10 Staten Island reviews. You took the ferry for Taco Bell. Legend.",pts:35,check:rs=>rs.filter(r=>r.borough==="Staten Island").length>=10},
+
+  // ── SAFETY (5–40 pts) ─────────────────────────────────────────────────────────
+  {id:"all_green",icon:"🟢",name:"Safety Sally",desc:"Log 3 green light visits. You go during business hours like an adult.",pts:10,check:rs=>rs.filter(r=>r.safetyLight==="green").length>=3},
+  {id:"all_red",icon:"🔴",name:"Danger Seeker",desc:"Log 3 red light visits. You eat with your eyes open.",pts:15,check:rs=>rs.filter(r=>r.safetyLight==="red").length>=3},
+  {id:"yellow_zone",icon:"🟡",name:"Vibes Uncertain",desc:"Log 5 yellow light visits. Somewhere between fine and not fine.",pts:10,check:rs=>rs.filter(r=>r.safetyLight==="yellow").length>=5},
+  {id:"ten_greens",icon:"🛡️",name:"Certified Safe",desc:"10 green light visits. You are an oasis of calm.",pts:25,check:rs=>rs.filter(r=>r.safetyLight==="green").length>=10},
+  {id:"survived_red",icon:"🎖️",name:"Lived to Tell",desc:"Log a red light visit AND give 4+ stars. Respect.",pts:20,check:rs=>rs.some(r=>r.safetyLight==="red"&&r.rating>=4)},
+
+  // ── PRICE (5–40 pts) ──────────────────────────────────────────────────────────
+  {id:"price_watcher",icon:"💰",name:"Budget Bell",desc:"Log a price under $3. Bless you and your Beefy Melt Burrito.",pts:10,check:rs=>rs.some(r=>r.price&&parseFloat(r.price)<3)},
+  {id:"big_spender",icon:"🤑",name:"You Got Finessed",desc:"Log a price over $15 at Taco Bell. Sir.",pts:10,check:rs=>rs.some(r=>r.price&&parseFloat(r.price)>15)},
+  {id:"consistent_prices",icon:"📊",name:"The Auditor",desc:"Log prices on 10 different reviews.",pts:20,check:rs=>rs.filter(r=>r.price).length>=10},
+  {id:"cheap_streak",icon:"🪙",name:"Frugal Legend",desc:"Log 5 items all under $5.",pts:25,check:rs=>rs.filter(r=>r.price&&parseFloat(r.price)<5).length>=5},
+
+  // ── SHOUTOUTS (10–75 pts) ─────────────────────────────────────────────────────
+  {id:"shoutout_3",icon:"👏",name:"Community Hero",desc:"Give 3 employee shoutouts. The workers deserve it.",pts:10,check:rs=>rs.filter(r=>r.employees).length>=3},
+  {id:"shoutout_10",icon:"🌹",name:"Employee of the Month",desc:"10 employee shoutouts. HR called, they want to hire you.",pts:25,check:rs=>rs.filter(r=>r.employees).length>=10},
+  {id:"shoutout_25",icon:"🏆",name:"Shoutout Savant",desc:"25 shoutouts. You remember every name. This is a gift.",pts:50,check:rs=>rs.filter(r=>r.employees).length>=25},
+  {id:"diverse_shoutouts",icon:"🎤",name:"Name Rememberer",desc:"Shoutout 10 different employees by name.",pts:40,check:rs=>{const names=new Set();rs.forEach(r=>r.employees&&r.employees.split(/[,&]+/).map(e=>e.trim()).filter(Boolean).forEach(e=>names.add(e.toLowerCase())));return names.size>=10;}},
+
+  // ── MENU ITEMS (10–75 pts) ────────────────────────────────────────────────────
+  {id:"crunchwrap_fan",icon:"🫓",name:"Crunchwrap Connoisseur",desc:"Rate the Crunchwrap 5 stars. Correct.",pts:10,check:rs=>rs.some(r=>r.itemId===23&&r.rating===5)},
+  {id:"ten_diff_items",icon:"📋",name:"Menu Explorer",desc:"Review 10 different menu items.",pts:20,check:rs=>new Set(rs.map(r=>r.itemId)).size>=10},
+  {id:"twenty_diff_items",icon:"🧪",name:"Menu Scientist",desc:"Review 20 different items. You've tasted the full Bell.",pts:35,check:rs=>new Set(rs.map(r=>r.itemId)).size>=20},
+  {id:"fifty_diff_items",icon:"📖",name:"The Bell Bible",desc:"Review 50 different menu items. A true scholar.",pts:75,check:rs=>new Set(rs.map(r=>r.itemId)).size>=50},
+  {id:"same_item_5",icon:"🔁",name:"Creature of Habit",desc:"Review the same item 5 times. You found your person.",pts:15,check:rs=>{const counts={};rs.forEach(r=>counts[r.itemId]=(counts[r.itemId]||0)+1);return Object.values(counts).some(c=>c>=5);}},
+  {id:"same_item_10",icon:"🧲",name:"Obsessed (Diagnosed)",desc:"Review the same item 10 times. Are you okay?",pts:30,check:rs=>{const counts={};rs.forEach(r=>counts[r.itemId]=(counts[r.itemId]||0)+1);return Object.values(counts).some(c=>c>=10);}},
+
+  // ── WRITING (10–50 pts) ───────────────────────────────────────────────────────
+  {id:"long_review",icon:"📝",name:"Novelist",desc:"Write a review over 100 characters. We see you, Hemingway.",pts:15,check:rs=>rs.some(r=>r.text&&r.text.length>100)},
+  {id:"ten_written",icon:"📰",name:"Staff Writer",desc:"Write text on 10 different reviews.",pts:25,check:rs=>rs.filter(r=>r.text&&r.text.trim().length>0).length>=10},
+  {id:"essay_review",icon:"📚",name:"The Think Piece",desc:"Write a review over 300 characters. Send it to the Times.",pts:40,check:rs=>rs.some(r=>r.text&&r.text.length>300)},
+
+  // ── LOCATION DIVERSITY (20–75 pts) ────────────────────────────────────────────
+  {id:"five_locs",icon:"🗺️",name:"Location Scout",desc:"Visit 5 different Taco Bell locations.",pts:20,check:rs=>new Set(rs.map(r=>r.location).filter(Boolean)).size>=5},
+  {id:"ten_locs",icon:"🚇",name:"MTA Employee",desc:"Visit 10 different locations. You commute for the Bell.",pts:35,check:rs=>new Set(rs.map(r=>r.location).filter(Boolean)).size>=10},
+  {id:"twenty_locs",icon:"🗽",name:"NYC Bell Map",desc:"Visit 20 different NYC Taco Bell locations.",pts:60,check:rs=>new Set(rs.map(r=>r.location).filter(Boolean)).size>=20},
+  {id:"fifty_locs",icon:"🌐",name:"All-City",desc:"Visit 50 different locations. You've mapped them all.",pts:100,check:rs=>new Set(rs.map(r=>r.location).filter(Boolean)).size>=50},
+
+  // ── WEIRD FLEX (15–100 pts) ───────────────────────────────────────────────────
+  {id:"three_in_one_day",icon:"⚡",name:"Speed Run",desc:"Log 3 reviews in one day. Taco Bell is your cardio.",pts:25,check:rs=>{const dc={};rs.forEach(r=>dc[r.date]=(dc[r.date]||0)+1);return Object.values(dc).some(c=>c>=3);}},
+  {id:"all_boroughs_week",icon:"🏃",name:"Borough Blitz",desc:"Review in all 5 boroughs in the same week.",pts:75,check:rs=>{
+    const weeks={};
+    rs.forEach(r=>{
+      if(!r.date||!r.borough)return;
+      const d=new Date(r.date);
+      const wk=Math.floor(d.getTime()/(7*24*60*60*1000));
+      if(!weeks[wk])weeks[wk]=new Set();
+      weeks[wk].add(r.borough);
+    });
+    return Object.values(weeks).some(s=>s.size>=5);
+  }},
+  {id:"rated_everything",icon:"👁️",name:"The Completionist",desc:"Review every category of menu item at least once.",pts:50,check:rs=>{const cats=new Set(rs.map(r=>r.item?.category).filter(Boolean));return["Tacos","Burritos","Quesadillas","Nachos","Combos","Drinks","Desserts","Sides"].every(c=>cats.has(c));}},
+  {id:"consistent_reviewer",icon:"📅",name:"Methodical",desc:"Log at least 1 review in 5 different months.",pts:35,check:rs=>{const months=new Set(rs.map(r=>r.date?new Date(r.date).toISOString().slice(0,7):null).filter(Boolean));return months.size>=5;}},
+  {id:"night_owl",icon:"🦉",name:"After Dark",desc:"Log 5 red-light visits. You eat in the shadows. We respect it.",pts:20,check:rs=>rs.filter(r=>r.safetyLight==="red").length>=5},
+  {id:"price_and_safety",icon:"🧮",name:"Due Diligence",desc:"Log both price AND safety light on 10 reviews.",pts:30,check:rs=>rs.filter(r=>r.price&&r.safetyLight).length>=10},
+  {id:"full_review",icon:"💎",name:"The Full Package",desc:"Log a review with rating, text, borough, location, price, safety, AND a shoutout.",pts:50,check:rs=>rs.some(r=>r.rating&&r.text&&r.borough&&r.location&&r.price&&r.safetyLight&&r.employees)},
+  {id:"century_club",icon:"🎰",name:"Bell Millionaire",desc:"Earn 500+ total achievement points.",pts:100,check:(rs,pts)=>pts>=500},
 ];
 
 // ─── SCORING ──────────────────────────────────────────────────────────────────
@@ -701,6 +786,8 @@ function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setVie
   const avgRating = friend.reviews.length ? (friend.reviews.reduce((a,r)=>a+r.rating,0)/friend.reviews.length).toFixed(1) : "—";
   const shoutouts = friend.reviews.filter(r=>r.employees).length;
   const boroughs = [...new Set(friend.reviews.map(r=>r.borough).filter(Boolean))];
+  const friendEarnedPts=ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(friend.reviews,0);}catch(e){return false;}}).reduce((s,a)=>s+(a.pts||0),0);
+  const friendTier=friendEarnedPts>=1000?"🔥 Bell Legend":friendEarnedPts>=500?"💫 Bell Master":friendEarnedPts>=250?"🏆 Bell Head":friendEarnedPts>=100?"⭐ Regular":friendEarnedPts>=25?"🌮 Newcomer":"🫘 Bean Counter";
   const topItem = (()=>{
     const counts={};friend.reviews.forEach(r=>{counts[r.itemId]=(counts[r.itemId]||0)+1;});
     const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
@@ -723,6 +810,7 @@ function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setVie
             <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:2,lineHeight:1,marginBottom:4}}>{friend.username}</h1>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               <span style={{background:"#7c3aed22",color:"#a78bfa",padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>🌮 Taco Bell Enjoyer</span>
+              <span style={{background:"#fbbf2422",color:"#fbbf24",padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>✨ {friendEarnedPts} pts · {friendTier}</span>
               {boroughs.map(b=><span key={b} style={{background:BOROUGH_COLORS[b]+"22",color:BOROUGH_COLORS[b],padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>📍 {b}</span>)}
             </div>
           </div>
@@ -1028,7 +1116,14 @@ function App(){
   const getReviews=id=>reviews[id]||[];
   const getAvg=id=>{const r=getReviews(id);return r.length?r.reduce((a,b)=>a+b.rating,0)/r.length:0;};
   const myReviewsList=allReviews.filter(r=>r.user===currentUser);
-  const earnedAchievements=ACHIEVEMENT_DEFS.filter(a=>a.check(myReviewsList)).map(a=>a.id);
+  const earnedAchievements=ACHIEVEMENT_DEFS.filter(a=>{
+    try{return a.check(myReviewsList,0);}catch(e){return false;}
+  }).map(a=>a.id);
+  // Second pass: compute base pts first, then check point-dependent achievements
+  const basePts=ACHIEVEMENT_DEFS.filter(a=>earnedAchievements.includes(a.id)).reduce((sum,a)=>sum+(a.pts||0),0);
+  const earnedAchievementsFinal=[...new Set([...earnedAchievements,...ACHIEVEMENT_DEFS.filter(a=>{try{return a.check(myReviewsList,basePts);}catch(e){return false;}}).map(a=>a.id)])];
+  const totalAchievementPoints=ACHIEVEMENT_DEFS.filter(a=>earnedAchievementsFinal.includes(a.id)).reduce((sum,a)=>sum+(a.pts||0),0);
+  const maxAchievementPoints=ACHIEVEMENT_DEFS.reduce((sum,a)=>sum+(a.pts||0),0);
   const oneWeekAgo=new Date();oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
   const weeklyReviews=allReviewsWithFriends.filter(()=>true);
   const weeklyByUser={};
@@ -1827,6 +1922,39 @@ function App(){
               }
             </div>
 
+            {/* Achievement Points Banner */}
+            {isLoggedIn&&(()=>{
+              const pct=Math.round((totalAchievementPoints/maxAchievementPoints)*100);
+              const tier=totalAchievementPoints>=1000?"🔥 Bell Legend":totalAchievementPoints>=500?"💫 Bell Master":totalAchievementPoints>=250?"🏆 Bell Head":totalAchievementPoints>=100?"⭐ Regular":totalAchievementPoints>=25?"🌮 Newcomer":"🫘 Bean Counter";
+              const tierColor=totalAchievementPoints>=1000?"#fbbf24":totalAchievementPoints>=500?"#a78bfa":totalAchievementPoints>=250?"#f97316":totalAchievementPoints>=100?"#22c55e":"#7c5cad";
+              return(
+                <div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.2),rgba(219,39,119,0.12))",border:"2px solid #3a2060",borderRadius:16,padding:"16px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 100% 0%,rgba(251,191,36,0.07) 0%,transparent 60%)",pointerEvents:"none"}}/>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,gap:8}}>
+                    <div>
+                      <div style={{fontSize:9,color:"#7c5cad",fontWeight:700,letterSpacing:2,marginBottom:2}}>ACHIEVEMENT POINTS</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                        <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,color:"#fbbf24",lineHeight:1}}>{totalAchievementPoints}</span>
+                        <span style={{fontSize:11,color:"#5a3f80"}}>/ {maxAchievementPoints} pts</span>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:16,color:tierColor,letterSpacing:1}}>{tier}</div>
+                      <div style={{fontSize:10,color:"#7c5cad"}}>{earnedAchievementsFinal.length} / {ACHIEVEMENT_DEFS.length} unlocked</div>
+                    </div>
+                  </div>
+                  <div style={{height:8,borderRadius:4,background:"rgba(13,5,32,0.6)",overflow:"hidden"}}>
+                    <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#7c3aed,#fbbf24)",borderRadius:4,transition:"width 0.8s ease",boxShadow:"0 0 8px rgba(251,191,36,0.4)"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                    <span style={{fontSize:9,color:"#5a3f80"}}>0</span>
+                    <span style={{fontSize:9,color:"#fbbf24",fontWeight:700}}>{pct}% complete</span>
+                    <span style={{fontSize:9,color:"#5a3f80"}}>{maxAchievementPoints}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Anthem */}
             {isLoggedIn&&<div style={{background:"rgba(26,13,53,0.95)",border:"2px solid "+anthem?"#7c3aed":"#2a1550",borderRadius:14,padding:"14px 16px",marginBottom:16,position:"relative",overflow:"hidden"}}>
               {anthem&&<div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 0% 50%,rgba(124,58,237,0.15) 0%,transparent 60%)",pointerEvents:"none"}}/>}
@@ -1904,11 +2032,12 @@ function App(){
             </div>
 
             {/* Achievements */}
-            <h2 className="st">🏅 ACHIEVEMENTS ({earnedAchievements.length}/{ACHIEVEMENT_DEFS.length})</h2>
+            <h2 className="st">🏅 ACHIEVEMENTS ({earnedAchievementsFinal.length}/{ACHIEVEMENT_DEFS.length}) · <span style={{color:"#fbbf24",fontSize:14}}>{totalAchievementPoints} pts</span></h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:8,marginBottom:18}}>
               {ACHIEVEMENT_DEFS.map(a=>{
-                const earned=earnedAchievements.includes(a.id);
-                return(<div key={a.id} style={{background:earned?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.5)",border:"1px solid "+earned?"#7c3aed":"#1a0d35",borderRadius:12,padding:"10px",opacity:earned?1:0.4}}>
+                const earned=earnedAchievementsFinal.includes(a.id);
+                return(<div key={a.id} style={{background:earned?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.5)",border:"1px solid "+(earned?"#7c3aed":"#1a0d35"),borderRadius:12,padding:"10px",opacity:earned?1:0.4,position:"relative"}}>
+                  <div style={{position:"absolute",top:6,right:8,fontFamily:"'Bebas Neue',cursive",fontSize:11,color:earned?"#fbbf24":"#3a2060"}}>+{a.pts}pts</div>
                   <div style={{fontSize:22,marginBottom:3}}>{a.icon}</div>
                   <div style={{fontWeight:800,fontSize:11,color:earned?"#f0e6ff":"#7c5cad"}}>{a.name}</div>
                   <div style={{fontSize:9,color:"#5a3f80",marginTop:2}}>{a.desc}</div>
