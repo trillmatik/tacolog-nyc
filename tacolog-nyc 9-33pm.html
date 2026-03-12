@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TACOLOG NYC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0520; font-family: Nunito, sans-serif; color: #f0e6ff; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0d0520; }
+    ::-webkit-scrollbar-thumb { background: #3a2060; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useRef, useEffect } = React;
+// ─── LOAD SUPABASE SDK ───────────────────────────────────────────────────────
+function loadSupabaseSDK() {
+  return new Promise((resolve, reject) => {
+    if (typeof supabase !== "undefined") { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const LOCATIONS_BY_BOROUGH = {
+  "Manhattan": ["1351 St. Nicholas Ave, New York, NY 10033","230 Varick Street, New York, NY 10014","240 West 40th St, New York, NY 10018","1843 1st Ave, New York, NY 10128","321 1st Avenue, New York, NY 10003","173 E. 116th Street, New York, NY 10029","545 6th Ave, New York, NY 10011","840 8th Ave, New York, NY 10019 ★ Cantina (24hrs)","24 East 23rd Street, New York, NY 10010","18 E. 14th Street, New York, NY 10003","161 East 125th St, New York, NY 10035","976 6th Ave, New York, NY 10018 ★ Cantina (24hrs)","224 7th Ave, New York, NY 10011 ★ Cantina","1501 Broadway, New York, NY 10036 ★ Cantina","104 3rd Ave, New York, NY 10003","1614 2nd Avenue, New York, NY 10028","1266 1st Ave, New York, NY 10065","246 E 23rd St, New York, NY 10010","58A Fulton Street, New York, NY 10038","390 8th Avenue, New York, NY 10001","1503 Lexington Ave, New York, NY 10029","234 W 42nd St, New York, NY 10036","1407 Broadway, New York, NY 10018","142 Fulton St, New York, NY 10038","215 E 86th St, New York, NY 10028","310 W 42nd St, New York, NY 10036","2885 Broadway, New York, NY 10025","3427 Broadway, New York, NY 10031"],
+  "Brooklyn": ["8625 4th Ave, Brooklyn, NY 11209","2026 Coney Island Ave, Brooklyn, NY 11223 (TB/KFC)","108-30 Flatlands Ave, Brooklyn, NY 11236 (TB/KFC)","491 Nostrand Ave, Brooklyn, NY 11216 ★ Cantina","1359 Broadway, Brooklyn, NY 11221 ★ Cantina","1034 Flatbush Ave, Brooklyn, NY 11226 ★ Cantina","208 McGuinness Blvd, Brooklyn, NY 11222 (TB/KFC)","1665 Pitkin Avenue, Brooklyn, NY 11212","785 Flushing Avenue, Brooklyn, NY 11206 (TB/Pizza Hut, 24hrs)","1047 Surf Ave, Brooklyn, NY 11224 ★ Cantina","1902 Ralph Avenue, Brooklyn, NY 11234","5118 5th Avenue, Brooklyn, NY 11220","1977 86th Street, Brooklyn, NY 11214","809 Grand Street, Brooklyn, NY 11211","4218 Atlantic Ave, Brooklyn, NY 11208","2580 Flatbush Ave, Brooklyn, NY 11234"],
+  "Bronx": ["961 E 174th Street, Bronx, NY 10460","3351 Conners Street, Bronx, NY 10475","249 East 149th St, Bronx, NY 10451","1889 Bruckner Blvd, Bronx, NY 10472","1731 Webster Avenue, Bronx, NY 10457 (TB/KFC)","880 River Avenue, Bronx, NY 10452 ★ Cantina","2165A White Plains Road, Bronx, NY 10462","2036 Jerome Avenue, Bronx, NY 10453 ★ Cantina","8 W Fordham Rd, Bronx, NY 10468","361 E. Fordham Road, Bronx, NY 10458","450 East 149th St, Bronx, NY 10451","1058 Southern Blvd, Bronx, NY 10459","4176 White Plains Rd, Bronx, NY 10466","2350 Grand Concourse, Bronx, NY 10458","630 Exterior St, Bronx, NY 10451","3710 Boston Rd, Bronx, NY 10469","3140 Middletown Rd, Bronx, NY 10461"],
+  "Queens": ["172-12 Northern Blvd, Flushing, NY 11358","31-22 Farrington Street, Flushing, NY 11354","92-23 168th Street, Jamaica, NY 11433","16001 Jamaica Avenue, Jamaica, NY 11432","17551 Hillside Ave, Jamaica, NY 11432","132-77 Metropolitan Ave, Jamaica, NY 11418","119-16 Liberty Ave, Jamaica, NY 11419","9701 Atlantic Ave, Ozone Park, NY 11416","9506 63rd Drive, Rego Park, NY 11374","61-22H Fresh Pond Road, Middle Village, NY 11379","57-17 Myrtle Ave, Ridgewood, NY 11385","38-1 Junction Blvd, Corona, NY 11368","83-10 Astoria Blvd, East Elmhurst, NY 11369","60-12 Northern Blvd, Woodside, NY 11377","22-24 31st Street, Astoria, NY 11102","13-05 Beach Channel Drive, Far Rockaway, NY 11691","135-25 79th Street, Howard Beach, NY 11414","8301 37th Ave, Jackson Heights, NY 11372"],
+  "Staten Island": ["1281 Forest Ave, Staten Island, NY 10302","2655 Richmond Ave (Staten Island Mall Food Court), Staten Island, NY 10314","2475 Hylan Blvd, Staten Island, NY 10306","2259 Richmond Avenue, Staten Island, NY 10314","429 Tompkins Ave, Staten Island, NY 10305","1775 South Ave, Staten Island, NY 10314"],
+};
+const ALL_LOCATIONS=Object.entries(LOCATIONS_BY_BOROUGH).flatMap(([b,locs])=>locs.map(a=>({borough:b,address:a})));
+const MENU_ITEMS=[
+  {id:1,name:"Crunchy Taco",category:"Tacos",emoji:"🌮",desc:"Seasoned beef, lettuce & cheddar in a crispy corn shell."},
+  {id:2,name:"Soft Taco",category:"Tacos",emoji:"🌮",desc:"Seasoned beef, lettuce & cheddar in a warm flour tortilla."},
+  {id:3,name:"Crunchy Taco Supreme",category:"Tacos",emoji:"🌮",desc:"Crunchy Taco + tomatoes & sour cream."},
+  {id:4,name:"Soft Taco Supreme",category:"Tacos",emoji:"🌮",desc:"Soft Taco + tomatoes & sour cream."},
+  {id:5,name:"Doritos Locos Taco – Nacho Cheese",category:"Tacos",emoji:"🌮",desc:"Crunchy taco in a Nacho Cheese Doritos shell."},
+  {id:6,name:"Doritos Locos Taco – Cool Ranch",category:"Tacos",emoji:"🌮",desc:"Crunchy taco in a Cool Ranch Doritos shell."},
+  {id:7,name:"Doritos Locos Taco Supreme",category:"Tacos",emoji:"🌮",desc:"Nacho Cheese DLT + sour cream & tomatoes."},
+  {id:8,name:"Cheesy Gordita Crunch",category:"Tacos",emoji:"🌮",desc:"Crunchy taco wrapped in a cheesy flatbread with spicy ranch."},
+  {id:9,name:"Chalupa Supreme",category:"Tacos",emoji:"🌮",desc:"Fried chalupa shell with seasoned beef, lettuce, tomato & sour cream."},
+  {id:10,name:"Chalupa Supreme – Chicken",category:"Tacos",emoji:"🌮",desc:"Chalupa Supreme made with shredded chicken."},
+  {id:11,name:"Cantina Chicken Crispy Taco",category:"Tacos",emoji:"🌮",desc:"Slow-roasted cantina chicken, crispy shell, avocado ranch."},
+  {id:12,name:"Cantina Chicken Soft Taco",category:"Tacos",emoji:"🌮",desc:"Slow-roasted cantina chicken, soft tortilla, pico & avocado ranch."},
+  {id:13,name:"Spicy Potato Soft Taco",category:"Tacos",emoji:"🌮",desc:"Crispy potato bites, chipotle sauce, lettuce & cheddar."},
+  {id:14,name:"Bean Burrito",category:"Burritos",emoji:"🌯",desc:"Refried beans, onions & red sauce. The OG."},
+  {id:15,name:"Beefy 5-Layer Burrito",category:"Burritos",emoji:"🌯",desc:"Seasoned beef, refried beans, nacho cheese, sour cream & cheddar."},
+  {id:16,name:"Cheesy Bean & Rice Burrito",category:"Burritos",emoji:"🌯",desc:"Refried beans, seasoned rice, chipotle sauce & three-cheese blend."},
+  {id:17,name:"Burrito Supreme",category:"Burritos",emoji:"🌯",desc:"Seasoned beef, refried beans, sour cream, tomatoes, lettuce & cheddar."},
+  {id:18,name:"Grilled Cheese Burrito",category:"Burritos",emoji:"🌯",desc:"Seasoned beef, chipotle sauce & three cheeses, grilled to perfection."},
+  {id:19,name:"Grilled Cheese Burrito – Steak",category:"Burritos",emoji:"🌯",desc:"Grilled Cheese Burrito made with marinated steak."},
+  {id:20,name:"Cantina Chicken Burrito",category:"Burritos",emoji:"🌯",desc:"Slow-roasted chicken, cilantro rice, black beans, pico & avocado ranch."},
+  {id:21,name:"Quesarito",category:"Burritos",emoji:"🌯",desc:"A cheesy quesadilla wrapped around a seasoned beef burrito."},
+  {id:22,name:"Flamin' Hot Grilled Cheese Burrito",category:"Burritos",emoji:"🌯",desc:"Grilled Cheese Burrito with Flamin' Hot seasoning."},
+  {id:23,name:"Crunchwrap Supreme",category:"Specialties",emoji:"🫓",desc:"Hexagonal masterpiece — seasoned beef, nacho cheese, sour cream, tomatoes & lettuce."},
+  {id:24,name:"Crunchwrap Supreme – Chicken",category:"Specialties",emoji:"🫓",desc:"Crunchwrap Supreme with grilled chicken."},
+  {id:25,name:"Mexican Pizza",category:"Specialties",emoji:"🍕",desc:"Two crispy shells, seasoned beef, beans, pizza sauce & three-cheese blend."},
+  {id:26,name:"Chicken Quesadilla",category:"Specialties",emoji:"🫓",desc:"Grilled chicken & three-cheese blend in a toasted flour tortilla."},
+  {id:27,name:"Cheese Quesadilla",category:"Specialties",emoji:"🫓",desc:"Three-cheese blend melted in a toasted flour tortilla."},
+  {id:28,name:"Cantina Chicken Quesadilla",category:"Specialties",emoji:"🫓",desc:"Slow-roasted cantina chicken quesadilla with avocado ranch sauce."},
+  {id:29,name:"Nachos BellGrande",category:"Nachos",emoji:"🧀",desc:"Tortilla chips, seasoned beef, nacho cheese, pico de gallo & sour cream."},
+  {id:30,name:"Chips & Nacho Cheese Sauce",category:"Nachos",emoji:"🧀",desc:"Tortilla chips with warm nacho cheese sauce."},
+  {id:31,name:"Loaded Nachos",category:"Nachos",emoji:"🧀",desc:"Chips loaded with seasoned beef, nacho cheese & jalapeños."},
+  {id:32,name:"Chips & Nacho Supreme Dip",category:"Nachos",emoji:"🧀",desc:"Layered dip of beef, beans, nacho cheese, sour cream & pico."},
+  {id:33,name:"Cantina Chicken Bowl",category:"Bowls",emoji:"🥗",desc:"Slow-roasted chicken, cilantro rice, black beans, guac, pico & avocado ranch."},
+  {id:34,name:"Power Bowl – Chicken",category:"Bowls",emoji:"🥗",desc:"Grilled chicken, cilantro rice, black beans, guac, pico & sour cream."},
+  {id:35,name:"Power Bowl – Veggie",category:"Bowls",emoji:"🥗",desc:"Cilantro rice, black beans, guac, pico, sour cream & three-cheese blend."},
+  {id:36,name:"Mini Taco Salad",category:"Luxe Value",emoji:"🥗",desc:"Seasoned beef, chipotle sauce, cheddar, lettuce, tomatoes & beans in a tortilla bowl."},
+  {id:37,name:"Beefy Potato Loaded Griller",category:"Luxe Value",emoji:"🌯",desc:"Seasoned beef, crispy potato bites, nacho cheese, chipotle sauce & sour cream."},
+  {id:38,name:"Avocado Ranch Chicken Stacker",category:"Luxe Value",emoji:"🫓",desc:"Grilled chicken, avocado ranch, three-cheese, lettuce & tomatoes."},
+  {id:39,name:"Cheesy Roll Up",category:"Luxe Value",emoji:"🧀",desc:"Warm flour tortilla rolled up with three-cheese blend."},
+  {id:40,name:"Spicy Potato Soft Taco (Value)",category:"Luxe Value",emoji:"🌮",desc:"Crispy potato bites, chipotle sauce, lettuce & cheddar."},
+  {id:41,name:"Cheesy Bean & Rice Burrito (Value)",category:"Luxe Value",emoji:"🌯",desc:"Refried beans, seasoned rice, chipotle sauce & three-cheese blend."},
+  {id:42,name:"Nacho Fries",category:"Sides & Sweets",emoji:"🍟",desc:"Bold seasoned fries with warm nacho cheese dipping sauce."},
+  {id:43,name:"Nacho Fries BellGrande",category:"Sides & Sweets",emoji:"🍟",desc:"Nacho Fries loaded with seasoned beef, nacho cheese, pico & sour cream."},
+  {id:44,name:"Fiesta Potatoes",category:"Sides & Sweets",emoji:"🥔",desc:"Crispy potato bites topped with nacho cheese & sour cream."},
+  {id:45,name:"Cinnabon Delights® (2-pack)",category:"Sides & Sweets",emoji:"🍩",desc:"Warm pastry bites filled with Cinnabon cream cheese frosting."},
+  {id:46,name:"Cinnabon Delights® (12-pack)",category:"Sides & Sweets",emoji:"🍩",desc:"A dozen warm Cinnabon Delights."},
+  {id:47,name:"Cinnamon Twists",category:"Sides & Sweets",emoji:"🥨",desc:"Light, airy twists dusted in cinnamon sugar."},
+  {id:48,name:"Classic Luxe Box",category:"Combos & Boxes",emoji:"📦",desc:"Crunchwrap + Bean Burrito + Crunchy Taco + Chips & Nacho Cheese + Medium Drink. $5."},
+  {id:49,name:"Supreme Luxe Box",category:"Combos & Boxes",emoji:"📦",desc:"Crunchwrap + Chalupa Supreme + Taco Supreme + Cinnabon Delights + Medium Drink. $7."},
+  {id:50,name:"Discovery Luxe Box",category:"Combos & Boxes",emoji:"📦",desc:"Steak Grilled Cheese Burrito + Crunchy Taco + DLT + Cinnamon Twists + Medium Drink. $9."},
+  {id:51,name:"Build Your Own Cravings Box",category:"Combos & Boxes",emoji:"📦",desc:"Pick your own combo + Medium Drink. $6.99."},
+  {id:52,name:"Crunchwrap Supreme Combo",category:"Combos & Boxes",emoji:"📦",desc:"Crunchwrap Supreme + Crunchy Taco + Medium Drink."},
+  {id:53,name:"Chicken Quesadilla Combo",category:"Combos & Boxes",emoji:"📦",desc:"Chicken Quesadilla + Crunchy Taco + Medium Drink."},
+  {id:54,name:"Chalupa Supreme Combo",category:"Combos & Boxes",emoji:"📦",desc:"Chalupa Supreme + Crunchy Taco + Medium Drink."},
+  {id:55,name:"Mexican Pizza Combo",category:"Combos & Boxes",emoji:"📦",desc:"Mexican Pizza + Crunchy Taco + Medium Drink."},
+  {id:56,name:"Burrito Supreme Combo",category:"Combos & Boxes",emoji:"📦",desc:"Burrito Supreme + Crunchy Taco + Medium Drink."},
+  {id:57,name:"Cantina Chicken Burrito Combo",category:"Combos & Boxes",emoji:"📦",desc:"Cantina Chicken Burrito + Crunchy Taco + Medium Drink."},
+  {id:58,name:"Taco Party Pack (12 Tacos)",category:"Combos & Boxes",emoji:"📦",desc:"12 Crunchy or Soft Tacos."},
+  {id:59,name:"Cantina Chicken Bowl",category:"Cantina Chicken",emoji:"🥗",desc:"Slow-roasted chicken, cilantro rice, black beans, guac, pico & avocado ranch."},
+  {id:60,name:"Cantina Chicken Crispy Taco",category:"Cantina Chicken",emoji:"🌮",desc:"Slow-roasted chicken, crispy shell, avocado ranch & fresh pico."},
+  {id:61,name:"Cantina Chicken Burrito",category:"Cantina Chicken",emoji:"🌯",desc:"Slow-roasted chicken, cilantro rice, black beans & avocado ranch sauce."},
+  {id:62,name:"Cantina Chicken Quesadilla",category:"Cantina Chicken",emoji:"🫓",desc:"Cantina chicken with three-cheese blend in a toasted flour tortilla."},
+  {id:63,name:"Breakfast Crunchwrap",category:"Breakfast",emoji:"🌯",desc:"Eggs, bacon or sausage, hash brown & cheese. Grilled hexagonal perfection."},
+  {id:64,name:"Grande Toasted Breakfast Burrito",category:"Breakfast",emoji:"🌯",desc:"Scrambled eggs, bacon or sausage, hash browns & nacho cheese."},
+  {id:65,name:"Breakfast Soft Taco",category:"Breakfast",emoji:"🌮",desc:"Scrambled eggs & cheddar in a soft flour tortilla."},
+  {id:66,name:"Hash Brown",category:"Breakfast",emoji:"🥔",desc:"Golden crispy hash brown patty."},
+  {id:67,name:"Cinnabon Delights® Coffee",category:"Breakfast",emoji:"☕",desc:"Freshly brewed coffee with Cinnabon-inspired flavors."},
+  {id:68,name:"Baja Blast Freeze",category:"Drinks",emoji:"🥤",desc:"Mountain Dew Baja Blast blended into an icy freeze."},
+  {id:69,name:"Wild Strawberry Freeze",category:"Drinks",emoji:"🥤",desc:"Icy frozen wild strawberry Freeze."},
+  {id:70,name:"Mango Peach Agua Refresca",category:"Drinks",emoji:"🥤",desc:"Handcrafted mango-peach refresher."},
+  {id:71,name:"Vanilla Cream Soda Freeze",category:"Drinks",emoji:"🥤",desc:"Vanilla cream soda blended into a smooth icy freeze."},
+  {id:72,name:"Mountain Dew Baja Blast",category:"Drinks",emoji:"🥤",desc:"The legendary TB-exclusive Baja Blast fountain drink."},
+  {id:73,name:"Fountain Drink (Medium)",category:"Drinks",emoji:"🥤",desc:"Your choice of fountain soda."},
+];
+const CATEGORIES=["All",...new Set(MENU_ITEMS.map(i=>i.category))];
+const STAR_LABELS=["","Tragic 💀","Meh 😐","Decent 👍","Solid ⭐","Perfection 🔥"];
+const BOROUGH_COLORS={Manhattan:"#7c3aed",Brooklyn:"#db2777",Bronx:"#f59e0b",Queens:"#10b981","Staten Island":"#3b82f6"};
+const ACHIEVEMENT_DEFS=[
+  {id:"first_review",icon:"🌮",name:"First Bite",desc:"Log your first review",check:rs=>rs.length>=1},
+  {id:"five_reviews",icon:"⭐",name:"Regular",desc:"Log 5 reviews",check:rs=>rs.length>=5},
+  {id:"ten_reviews",icon:"🏆",name:"Bell Head",desc:"Log 10 reviews",check:rs=>rs.length>=10},
+  {id:"shoutout_3",icon:"👏",name:"Community Hero",desc:"Give 3 employee shoutouts",check:rs=>rs.filter(r=>r.employees).length>=3},
+  {id:"perfect_5",icon:"💯",name:"Perfectionist",desc:"Rate something 5 stars",check:rs=>rs.some(r=>r.rating===5)},
+  {id:"all_green",icon:"🟢",name:"Safety First",desc:"Log 3 green light visits",check:rs=>rs.filter(r=>r.safetyLight==="green").length>=3},
+  {id:"price_watcher",icon:"💰",name:"Budget Bell",desc:"Log a price under $3",check:rs=>rs.some(r=>r.price&&parseFloat(r.price)<3)},
+  {id:"borough_bx",icon:"🔥",name:"Bronx Loyalist",desc:"Log 3 Bronx reviews",check:rs=>rs.filter(r=>r.borough==="Bronx").length>=3},
+  {id:"borough_bk",icon:"💜",name:"Brooklyn Bred",desc:"Log 3 Brooklyn reviews",check:rs=>rs.filter(r=>r.borough==="Brooklyn").length>=3},
+  {id:"borough_mn",icon:"🗽",name:"Manhattan Mogul",desc:"Log 3 Manhattan reviews",check:rs=>rs.filter(r=>r.borough==="Manhattan").length>=3},
+  {id:"borough_qn",icon:"👑",name:"Queens Rep",desc:"Log 3 Queens reviews",check:rs=>rs.filter(r=>r.borough==="Queens").length>=3},
+  {id:"borough_si",icon:"🌉",name:"SI Insider",desc:"Log 3 Staten Island reviews",check:rs=>rs.filter(r=>r.borough==="Staten Island").length>=3},
+  {id:"all_boroughs",icon:"🗺️",name:"Five Borough Legend",desc:"Review in all 5 boroughs",check:rs=>new Set(rs.map(r=>r.borough).filter(Boolean)).size>=5},
+  {id:"crunchwrap_fan",icon:"🫓",name:"Crunchwrap Connoisseur",desc:"Rate the Crunchwrap 5 stars",check:rs=>rs.some(r=>r.itemId===23&&r.rating===5)},
+];
+
+// ─── SCORING ──────────────────────────────────────────────────────────────────
+function scoreLocation(address,locReviews){
+  if(!locReviews||locReviews.length===0)return null;
+  const ratings=locReviews.filter(r=>r.rating).map(r=>r.rating);
+  const avgRating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:0;
+  const ratingScore=(avgRating/5)*35;
+  const safetyScores=locReviews.filter(r=>r.safetyLight).map(r=>r.safetyLight==="green"?1:r.safetyLight==="yellow"?0.5:0);
+  const avgSafety=safetyScores.length?safetyScores.reduce((a,b)=>a+b,0)/safetyScores.length:0.7;
+  const safetyScore=avgSafety*30;
+  const shoutouts=locReviews.filter(r=>r.employees&&r.employees.trim()).length;
+  const shoutoutScore=Math.min(shoutouts/5,1)*20;
+  const prices=locReviews.filter(r=>r.price&&parseFloat(r.price)>0).map(r=>parseFloat(r.price));
+  let priceScore=7.5;
+  if(prices.length){const avg=prices.reduce((a,b)=>a+b,0)/prices.length;priceScore=avg<=3?15:avg>=8?0:((8-avg)/5)*15;}
+  return{total:Math.min(Math.round(ratingScore+safetyScore+shoutoutScore+priceScore),100),ratingScore:Math.round(ratingScore),safetyScore:Math.round(safetyScore),shoutoutScore:Math.round(shoutoutScore),priceScore:Math.round(priceScore),reviewCount:locReviews.length,avgRating,avgSafety,shoutouts,avgPrice:prices.length?prices.reduce((a,b)=>a+b,0)/prices.length:null};
+}
+function getPopularityTier(score){
+  if(score===null||score===undefined)return{label:"Unrated",color:"#4a3070",bg:"rgba(74,48,112,0.15)",icon:"❓"};
+  if(score>=80)return{label:"Legendary",color:"#fbbf24",bg:"rgba(251,191,36,0.12)",icon:"🔥"};
+  if(score>=65)return{label:"Hot Spot",color:"#f97316",bg:"rgba(249,115,22,0.12)",icon:"⭐"};
+  if(score>=50)return{label:"Solid",color:"#22c55e",bg:"rgba(34,197,94,0.12)",icon:"👍"};
+  if(score>=35)return{label:"Mid",color:"#a78bfa",bg:"rgba(167,139,250,0.12)",icon:"😐"};
+  return{label:"Avoid",color:"#ef4444",bg:"rgba(239,68,68,0.12)",icon:"⚠️"};
+}
+
+// ─── FRIEND CODES ─────────────────────────────────────────────────────────────
+function genCode(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";const s=()=>Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join("");return"TACO-"+s()+"-"+s()+"-"+s();}
+const DEMO_FRIENDS={};
+
+// Auth handled via Supabase — see SUPABASE CLIENT section above
+
+// ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
+const StarRating=({value,onChange,size=28})=>{
+  const[hov,setHov]=useState(0);
+  return(<div style={{display:"flex",gap:4}}>{[1,2,3,4,5].map(n=>(<span key={n} onClick={()=>onChange&&onChange(n)} onMouseEnter={()=>onChange&&setHov(n)} onMouseLeave={()=>onChange&&setHov(0)} style={{fontSize:size,cursor:onChange?"pointer":"default",color:n<=(hov||value)?"#FFD700":"#2a1550",transition:"color 0.1s,transform 0.1s",transform:hov===n?"scale(1.25)":"scale(1)",display:"inline-block",userSelect:"none",touchAction:"manipulation"}}>★</span>))}</div>);
+};
+
+const ScoreBar=({label,val,max,color})=>(<div style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:"#9d7cc7",fontWeight:700}}>{label}</span><span style={{fontSize:11,color,fontWeight:800}}>{val}<span style={{color:"#4a3070"}}>/{max}</span></span></div><div style={{height:6,borderRadius:3,background:"#1a0d35",overflow:"hidden"}}><div style={{height:"100%",width:(val/max)*100+"%",background:color,borderRadius:3,transition:"width 0.5s ease"}}/></div></div>);
+
+// Global avatar cache — populated by App, read by ReviewCard
+const AVATAR_CACHE = {};
+
+function ReviewCard({r,onClick,avatarCache={}}){
+  const bc=r.borough?BOROUGH_COLORS[r.borough]:"#7c3aed";
+  return(
+    <div onClick={onClick} style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:14,padding:"12px 14px",cursor:onClick?"pointer":"default"}}>
+      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+        {r.item&&<span style={{fontSize:22,flexShrink:0}}>{r.item.emoji}</span>}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
+            <span style={{width:22,height:22,borderRadius:"50%",background:"#7c3aed",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",flexShrink:0,fontWeight:800,overflow:"hidden"}}>
+              {(avatarCache[r.user]||AVATAR_CACHE[r.user])
+                ?<img src={(avatarCache[r.user]||AVATAR_CACHE[r.user])} alt={r.user} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                :(r.user||"?")[0].toUpperCase()}
+            </span>
+            <span style={{fontWeight:800,fontSize:12}}>{r.user}</span>
+            {r.item&&onClick&&<><span style={{color:"#5a3f80",fontSize:11}}>·</span><span style={{fontWeight:700,color:"#c4b5fd",fontSize:11}}>{r.item.name}</span></>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:5,marginBottom:3}}>
+            <span style={{color:"#FFD700",fontSize:13}}>{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span>
+            {r.borough&&<span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {r.borough}</span>}
+            {r.price&&<span style={{color:"#fbbf24",fontSize:10,fontWeight:700}}>💰 ${parseFloat(r.price).toFixed(2)}</span>}
+            {r.safetyLight&&<span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700,background:r.safetyLight==="green"?"rgba(34,197,94,0.12)":r.safetyLight==="yellow"?"rgba(234,179,8,0.12)":"rgba(239,68,68,0.12)",color:r.safetyLight==="green"?"#22c55e":r.safetyLight==="yellow"?"#eab308":"#ef4444"}}><span style={{width:5,height:5,borderRadius:"50%",background:"currentColor",display:"inline-block"}}/>{r.safetyLight==="green"?"Safe":r.safetyLight==="yellow"?"Sus":"Sketchy"}</span>}
+          </div>
+          {r.location&&<div style={{color:"#7c5cad",fontSize:10,marginBottom:2}}>📍 {r.location.length>44?r.location.slice(0,44)+"…":r.location}</div>}
+          {r.employees&&<div style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:6,padding:"2px 8px",marginBottom:3,fontSize:10,color:"#6ee7b7",display:"inline-block"}}>👏 {r.employees}</div>}
+          {r.text&&<p style={{color:"#9d7cc7",fontSize:11,lineHeight:1.5,marginTop:2}}>{r.text}</p>}
+        </div>
+        <span style={{color:"#3a2060",fontSize:9,flexShrink:0,marginLeft:4}}>{r.date}</span>
+      </div>
+    </div>
+  );
+}
+
+function Field({label,children,hint}){
+  return(<div style={{marginBottom:13}}><label style={{display:"block",fontWeight:700,marginBottom:5,color:"#c4b5fd",fontSize:11,letterSpacing:1}}>{label}</label>{children}{hint&&<div style={{fontSize:10,color:"#5a3f80",marginTop:3}}>{hint}</div>}</div>);
+}
+
+// ─── MENU DROPDOWN ────────────────────────────────────────────────────────────
+function MenuDropdown({value,onChange}){
+  const [open,setOpen]=useState(false);
+  const [query,setQuery]=useState("");
+  const [activeCat,setActiveCat]=useState("All");
+  const ref=useRef();
+  const inputRef=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);
+    return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  useEffect(()=>{if(open&&inputRef.current)inputRef.current.focus();},[open]);
+  const selected=value?MENU_ITEMS.find(i=>i.id===value):null;
+  const filtered=MENU_ITEMS
+    .filter(i=>activeCat==="All"||i.category===activeCat)
+    .filter(i=>i.name.toLowerCase().includes(query.toLowerCase())||i.category.toLowerCase().includes(query.toLowerCase()));
+  const grouped={};
+  filtered.forEach(i=>{if(!grouped[i.category])grouped[i.category]=[];grouped[i.category].push(i);});
+  return(
+    <div ref={ref} style={{position:"relative",width:"100%"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:10,background:"#1a0d35",border:"2px solid "+open?"#7c3aed":"#3a2060",borderRadius:12,padding:"11px 14px",cursor:"pointer",userSelect:"none",minHeight:48}}>
+        {selected
+          ?<><span style={{fontSize:20}}>{selected.emoji}</span><div style={{flex:1}}><div style={{fontWeight:800,fontSize:13,color:"#f0e6ff"}}>{selected.name}</div><div style={{fontSize:10,color:"#7c5cad"}}>{selected.category}</div></div></>
+          :<span style={{color:"#5a3f80",fontSize:13,flex:1}}>🌮 Search or browse the menu…</span>
+        }
+        <span style={{color:"#5a3f80",fontSize:11,transition:"transform 0.2s",transform:open?"rotate(180deg)":"none",flexShrink:0}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,background:"#120628",border:"1px solid #3a2060",borderRadius:14,zIndex:500,boxShadow:"0 20px 60px rgba(0,0,0,0.8)",overflow:"hidden"}}>
+          <div style={{padding:"10px 12px",borderBottom:"1px solid #1e0d40",background:"#120628"}}>
+            <input ref={inputRef} value={query} onChange={e=>{setQuery(e.target.value);setActiveCat("All");}} placeholder="🔍 Search menu…" style={{background:"rgba(26,13,53,0.8)",border:"1px solid #3a2060",borderRadius:8,color:"#f0e6ff",padding:"8px 12px",width:"100%",outline:"none",fontFamily:"Nunito",fontSize:13,boxSizing:"border-box"}}/>
+          </div>
+          {!query&&(
+            <div style={{display:"flex",gap:5,padding:"8px 12px",overflowX:"auto",borderBottom:"1px solid #1e0d40",WebkitOverflowScrolling:"touch"}}>
+              {CATEGORIES.map(c=>(
+                <button key={c} onClick={()=>setActiveCat(c)} style={{whiteSpace:"nowrap",padding:"4px 11px",borderRadius:20,border:"1px solid "+activeCat===c?"#7c3aed":"#2a1550",background:activeCat===c?"#7c3aed":"transparent",color:activeCat===c?"#fff":"#9d7cc7",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:11,flexShrink:0,minHeight:32}}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{maxHeight:260,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+            {Object.keys(grouped).length===0&&<div style={{padding:"18px",textAlign:"center",color:"#5a3f80",fontSize:13}}>No items match "{query}"</div>}
+            {Object.entries(grouped).map(([cat,items])=>(
+              <div key={cat}>
+                {(query||activeCat==="All")&&<div style={{padding:"5px 14px 2px",fontSize:9,color:"#5a3f80",fontWeight:800,letterSpacing:2,background:"rgba(13,5,32,0.7)"}}>{cat.toUpperCase()}</div>}
+                {items.map(item=>(
+                  <div key={item.id} onClick={()=>{onChange(item.id);setOpen(false);setQuery("");setActiveCat("All");}}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:value===item.id?"rgba(124,58,237,0.18)":"transparent",borderLeft:value===item.id?"3px solid #7c3aed":"3px solid transparent",minHeight:48}}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(124,58,237,0.1)"}
+                    onMouseLeave={e=>e.currentTarget.style.background=value===item.id?"rgba(124,58,237,0.18)":"transparent"}>
+                    <span style={{fontSize:20,flexShrink:0}}>{item.emoji}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#f0e6ff"}}>{item.name}</div>
+                      <div style={{fontSize:10,color:"#7c5cad",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.desc}</div>
+                    </div>
+                    {value===item.id&&<span style={{color:"#7c3aed",flexShrink:0}}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AUTH SCREEN ──────────────────────────────────────────────────────────────
+function AuthScreen({onLogin, sdkReady}){
+  const [mode,setMode]=useState("login");
+  const [username,setUsername]=useState("");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [showPw,setShowPw]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [success,setSuccess]=useState("");
+
+  const inp={width:"100%",background:"#1a0d35",border:"2px solid #3a2060",borderRadius:12,color:"#f0e6ff",padding:"12px 14px",fontFamily:"Nunito",fontSize:14,outline:"none"};
+  const lbl={display:"block",fontSize:11,fontWeight:700,color:"#c4b5fd",marginBottom:5,letterSpacing:1};
+
+  const submit=async()=>{
+    if(!email.trim()||!password.trim()||(mode==="signup"&&!username.trim())){setError("Fill in all fields.");return;}
+    setLoading(true);setError("");setSuccess("");
+    try {
+      const result = await authAction(mode==="login"?"LOGIN":"CREATE", username.trim(), password, email);
+      if(result.success){
+        setSuccess(result.message);
+        // If no token, email confirmation needed — don't log in yet
+        if(!result.token){setLoading(false);return;}
+        const sess = {username:result.username,token:result.token,friendCode:result.friendCode||genCode(),userId:result.userId||null};
+        saveSession(sess);
+        setTimeout(()=>onLogin(sess),700);
+      } else {
+        setError(result.message);
+      }
+    } catch(e) {
+      setError("Something went wrong. Try again.");
+    }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0d0520",display:"flex",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"'Nunito',sans-serif"}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      <div style={{width:"100%",maxWidth:380}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{fontSize:52,marginBottom:8}}>🌮</div>
+          <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:48,letterSpacing:4,background:"linear-gradient(135deg,#c4b5fd,#f9a8d4,#fbbf24)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1}}>TACOLOG NYC</h1>
+          <p style={{color:"#5a3f80",fontSize:13,marginTop:6}}>Rate every bite across all 5 boroughs</p>
+        </div>
+        <div style={{background:"rgba(26,13,53,0.95)",border:"1px solid #2a1550",borderRadius:20,padding:"28px 24px"}}>
+          <div style={{display:"flex",background:"#0d0520",borderRadius:10,padding:3,marginBottom:22}}>
+            {["login","signup"].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:mode===m?"#7c3aed":"transparent",color:mode===m?"#fff":"#7c5cad",cursor:"pointer",fontFamily:"Nunito",fontWeight:800,fontSize:13,transition:"all 0.2s"}}>
+                {m==="login"?"Sign In":"Create Account"}
+              </button>
+            ))}
+          </div>
+
+          {mode==="signup"&&<div style={{marginBottom:14}}>
+            <label style={lbl}>USERNAME</label>
+            <input value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="your_taco_name" style={inp}/>
+          </div>}
+
+          <div style={{marginBottom:14}}>
+            <label style={lbl}>EMAIL</label>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@example.com" style={inp}/>
+          </div>
+
+          <div style={{marginBottom:18}}>
+            <label style={lbl}>PASSWORD</label>
+            <div style={{position:"relative"}}>
+              <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder={mode==="signup"?"6+ characters":""} style={{...inp,padding:"12px 44px 12px 14px"}}/>
+              <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#5a3f80",fontSize:16}}>{showPw?"🙈":"👁"}</button>
+            </div>
+          </div>
+
+          {error&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",color:"#f87171",fontSize:12,fontWeight:700,marginBottom:12}}>{error}</div>}
+          {success&&<div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:8,padding:"8px 12px",color:"#22c55e",fontSize:12,fontWeight:700,marginBottom:12}}>{success}</div>}
+
+          {sdkReady===false&&<div style={{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:8,padding:"8px 12px",color:"#f87171",fontSize:12,fontWeight:700,marginBottom:12}}>⚠️ Could not connect to Supabase. Check your network and try reloading.</div>}
+          <button onClick={submit} disabled={loading||sdkReady===false} style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",color:"#fff",padding:"13px",borderRadius:30,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:(loading||sdkReady===false)?"not-allowed":"pointer",opacity:(loading||sdkReady===false)?0.5:1,transition:"opacity 0.2s"}}>
+            {loading?"Connecting…":mode==="login"?"Sign In →":"Create Account →"}
+          </button>
+          <p style={{textAlign:"center",color:"#4a3070",fontSize:11,marginTop:14}}>
+            {mode==="login"?"Browse freely without an account — login only needed to post reviews.":"Your username appears on reviews. Email is private."}
+          </p>
+        </div>
+        <button onClick={()=>onLogin(null)} style={{display:"block",margin:"16px auto 0",background:"none",border:"none",color:"#5a3f80",fontSize:12,cursor:"pointer",fontFamily:"Nunito",textDecoration:"underline"}}>
+          Continue as guest (browse only)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── SUPABASE CONFIG ─────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://esvkbmrkzbvkdjujzkjr.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+
+// Pure fetch helpers — no SDK needed
+const sbHeaders = (token) => ({
+  "Content-Type": "application/json",
+  "apikey": SUPABASE_ANON_KEY,
+  "Authorization": "Bearer "+token || SUPABASE_ANON_KEY,
+});
+
+async function sbPost(path, body, token) {
+  const r = await fetch(SUPABASE_URL+path, {
+    method: "POST", headers: sbHeaders(token), body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+async function sbGet(path, token) {
+  const r = await fetch(SUPABASE_URL+path, {
+    method: "GET", headers: { ...sbHeaders(token), "Accept": "application/json" }
+  });
+  return r.json();
+}
+
+// ─── STORAGE HELPERS ─────────────────────────────────────────────────────────
+function lsGet(key){try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch{return null;}}
+function lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch{}}
+function lsDel(key){try{localStorage.removeItem(key);}catch{}}
+function loadSession(){return lsGet("tacolog:session");}
+function saveSession(sess){lsSet("tacolog:session",sess);}
+function clearSession(){lsDel("tacolog:session");}
+
+// ─── AUTH (Supabase Auth REST) ────────────────────────────────────────────────
+async function authAction(action, username, password, email) {
+  const display = username.trim();
+  if (!email || !email.includes("@"))
+    return {success:false, message:"Please enter a valid email address."};
+  if (!password || password.length < 6)
+    return {success:false, message:"Password must be at least 6 characters."};
+
+  if (action === "CREATE") {
+    const uname = display.toLowerCase();
+    if (!uname || uname.length < 3 || uname.length > 20)
+      return {success:false, message:"Username must be 3-20 characters."};
+    if (!/^[a-z0-9_]+$/.test(uname))
+      return {success:false, message:"Username: letters, numbers, underscores only."};
+
+    const res = await sbPost("/auth/v1/signup", {
+      email: email.trim(), password, data: {username: display}
+    });
+    if (res.error) {
+      if (res.error.message?.includes("already registered") || res.msg?.includes("already registered"))
+        return {success:false, message:"Email already in use."};
+      return {success:false, message: res.error.message || res.msg || "Signup failed."};
+    }
+    const token = res.access_token;
+    const userId = res.user?.id || res.id;
+    const fc = genCode();
+    // Save profile using anon key if no token yet (email confirmation enabled)
+    await fetch(SUPABASE_URL+"/rest/v1/profiles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer "+(token || SUPABASE_ANON_KEY),
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({id: userId, username: display, friend_code: fc})
+    });
+    // If no token, email confirmation is required
+    if (!token) {
+      return {success:true, isNew:true, username:display, token:null, friendCode:fc, userId,
+        message:"Account created! Check your email to confirm before signing in."};
+    }
+    return {success:true, isNew:true, username:display, token, friendCode:fc, userId,
+      message:"Welcome to TacoLog, "+display+"! 🌮"};
+  }
+
+  if (action === "LOGIN") {
+    const res = await sbPost("/auth/v1/token?grant_type=password", {
+      email: email.trim(), password
+    });
+    if (res.error || !res.access_token)
+      return {success:false, message: res.error?.message || res.error_description || "Wrong email or password."};
+    const token = res.access_token;
+    const userId = res.user?.id;
+    // Load profile for username + friend code (always trust DB, never email prefix)
+    const profiles = await sbGet("/rest/v1/profiles?id=eq."+userId+"&select=username,friend_code", token);
+    const profile = Array.isArray(profiles) ? profiles[0] : null;
+    if (!profile?.username) return {success:false, message:"Account found but profile missing. Contact support."};
+    return {success:true,
+      username: profile.username,
+      token, friendCode: profile.friend_code || genCode(), userId,
+      message:"Welcome back, "+profile.username+"! 🌮"};
+  }
+  return {success:false, message:"Unknown error."};
+}
+
+// ─── REVIEWS (Supabase REST) ──────────────────────────────────────────────────
+async function loadAllReviews(token) {
+  try {
+    const data = await sbGet(
+      "/rest/v1/reviews?select=*&order=created_at.desc&limit=500",
+      token
+    );
+    if (!Array.isArray(data)) return [];
+    return data.map(r => ({
+      id: r.id, itemId: r.item_id, user: r.username, rating: r.rating,
+      text: r.review_text, borough: r.borough, location: r.location,
+      employees: r.employees, price: r.price, safetyLight: r.safety_light,
+      date: new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+      item: MENU_ITEMS.find(i => i.id === r.item_id),
+    }));
+  } catch(e) { console.error("loadAllReviews:", e); return []; }
+}
+
+async function saveReview(review, userId, token) {
+  try {
+    const r = await fetch(SUPABASE_URL+"/rest/v1/reviews", {
+      method: "POST",
+      headers: {...sbHeaders(token), "Prefer": "return=minimal"},
+      body: JSON.stringify({
+        item_id: review.itemId, username: review.user, user_id: userId,
+        rating: review.rating, review_text: review.text || null,
+        borough: review.borough || null, location: review.location || null,
+        employees: review.employees || null,
+        price: review.price ? parseFloat(review.price) : null,
+        safety_light: review.safetyLight || null,
+      })
+    });
+    return r.ok;
+  } catch(e) { console.error("saveReview:", e); return false; }
+}
+
+function reviewsArrayToMap(arr){
+  const map={};
+  arr.forEach(r=>{if(!map[r.itemId])map[r.itemId]=[];map[r.itemId].push(r);});
+  return map;
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App(){
+  const [session,setSession]=useState(null); // null=show auth, {username,token,friendCode}=logged in, "guest"=browsing
+  const [authChecked,setAuthChecked]=useState(false);
+  const [sdkReady,setSdkReady]=useState(false);
+  const [view,setView]=useState("home");
+  const [selectedItem,setSelectedItem]=useState(null);
+  const [reviews,setReviews]=useState({});
+  const [filterCat,setFilterCat]=useState("All");
+  const [search,setSearch]=useState("");
+  const [sortBy,setSortBy]=useState("default");
+  const [showModal,setShowModal]=useState(false);
+  const [toast,setToast]=useState(null);
+  const [draft,setDraft]=useState({rating:0,text:"",borough:"",location:"",employees:"",price:"",safetyLight:""});
+  const [locSearch,setLocSearch]=useState("");
+  const [friends,setFriends]=useState({});
+  const [addCodeInput,setAddCodeInput]=useState("");
+  const [addCodeError,setAddCodeError]=useState("");
+  const [selectedFriend,setSelectedFriend]=useState(null);
+  const [modalItemId,setModalItemId]=useState(null);
+  const [ponyPlaying,setPonyPlaying]=useState(false);
+  const [anthem,setAnthem]=useState(null);
+  const [anthemDraft,setAnthemDraft]=useState({title:"",artist:"",url:""});
+  const [showAnthemModal,setShowAnthemModal]=useState(false);
+  const [anthemPlaying,setAnthemPlaying]=useState(false);
+  const [anthemAudio,setAnthemAudio]=useState(null);
+  const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
+  const [reviewsLoaded,setReviewsLoaded]=useState(false);
+  const [allAnthems,setAllAnthems]=useState([]);
+  const [avatarCache,setAvatarCache]=useState({});
+  const [editingReview,setEditingReview]=useState(null); // review being edited
+  const [avatarUrl,setAvatarUrl]=useState(null);
+  const [editingUsername,setEditingUsername]=useState(false);
+  const [newUsername,setNewUsername]=useState("");
+  const [usernameError,setUsernameError]=useState("");
+
+  // Boot: restore session then load reviews (pure fetch, no SDK)
+  useEffect(()=>{
+    (async()=>{
+      const s = loadSession();
+      if(s){
+        setSession(s);
+        if(s.userId){
+          const av=lsGet("tacolog:avatar:"+s.userId);
+          if(av){
+            setAvatarUrl(av);
+          } else {
+            const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+            fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId+"&select=avatar_url",{
+              headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
+            }).then(r=>r.json()).then(rows=>{
+              const url=rows?.[0]?.avatar_url;
+              if(url){setAvatarUrl(url);lsSet("tacolog:avatar:"+s.userId,url);}
+            }).catch(()=>{});
+          }
+        }
+      }
+      setSdkReady(true);
+      setAuthChecked(true);
+      try {
+        const arr = await loadAllReviews(s?.token);
+        setReviews(reviewsArrayToMap(arr));
+        // Fetch avatars for all profiles that have one
+        const AVATANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+        fetch(SUPABASE_URL+"/rest/v1/profiles?select=username,avatar_url",{
+          headers:{"apikey":AVATANON,"Authorization":"Bearer "+AVATANON}
+        }).then(r=>r.json()).then(rows=>{
+          if(Array.isArray(rows)){
+            const map={};
+            rows.forEach(r=>{if(r.avatar_url){map[r.username]=r.avatar_url;AVATAR_CACHE[r.username]=r.avatar_url;}});
+            if(Object.keys(map).length>0)setAvatarCache(map);
+          }
+        }).catch(()=>{});
+      } catch(e) {
+        console.error("Failed to load reviews", e);
+      }
+      // Load friends — merge Supabase friend_codes + localStorage
+      if(s?.userId){
+        try {
+          const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+          // Read from Supabase using anon key (public profiles policy)
+          const pResp = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId+"&select=friend_codes",{
+            headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
+          });
+          const pRows = await pResp.json();
+          const sbCodes = pRows?.[0]?.friend_codes ? JSON.parse(pRows[0].friend_codes) : [];
+          const lsFriends = lsGet("tacolog:friends:"+s.userId) || {};
+          const lsCodes = Object.keys(lsFriends);
+          const allCodes = [...new Set([...sbCodes, ...lsCodes])];
+          if(allCodes.length > 0){
+            const loadedFriends = {};
+            for(const fc of allCodes){
+              try {
+                const pr = await sbGet("/rest/v1/profiles?friend_code=eq."+fc+"&select=username,friend_code", ANON);
+                const fp = Array.isArray(pr) ? pr[0] : null;
+                if(fp){
+                  const rev = await sbGet("/rest/v1/reviews?username=eq."+encodeURIComponent(fp.username)+"&select=*&order=created_at.desc", ANON);
+                  const ANON2="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+                  const anthemResp = await fetch(SUPABASE_URL+"/rest/v1/profiles?friend_code=eq."+fc+"&select=anthem_title,anthem_artist,anthem_url,anthem_link_type",{headers:{"apikey":ANON2,"Authorization":"Bearer "+ANON2}});
+                  const anthemRows = await anthemResp.json();
+                  const aRow = anthemRows?.[0];
+                  const friendAnthem = aRow?.anthem_url ? {title:aRow.anthem_title||"Anthem",artist:aRow.anthem_artist||"",url:aRow.anthem_url,linkType:aRow.anthem_link_type||"audio"} : null;
+                  loadedFriends[fc]={username:fp.username,code:fp.friend_code,borough:"NYC",anthem:friendAnthem,reviews:Array.isArray(rev)?rev.map(r=>({
+                    id:r.id,itemId:r.item_id,user:r.username,rating:r.rating,text:r.review_text,
+                    borough:r.borough,location:r.location,employees:r.employees,price:r.price,
+                    safetyLight:r.safety_light,date:new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+                    item:MENU_ITEMS.find(i=>i.id===r.item_id),
+                  })):[]};
+                }
+              } catch(e){ console.error("friend load err",e); }
+            }
+            setFriends(loadedFriends);
+          }
+        } catch(e){ console.error("Failed to load friends",e); }
+      }
+      // Load own anthem from Supabase
+      if(s?.userId){
+        try {
+          const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+          const pr = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId+"&select=anthem_title,anthem_artist,anthem_url,anthem_link_type",{
+            headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
+          });
+          const rows = await pr.json();
+          const row = rows?.[0];
+          if(row?.anthem_url){
+            setAnthem({title:row.anthem_title||"My Anthem",artist:row.anthem_artist||"",url:row.anthem_url,isFile:false,linkType:row.anthem_link_type||"audio"});
+          }
+        } catch(e){}
+      }
+      // Load all anthems from all profiles for the popular anthems section
+      try {
+        const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
+        const ar = await fetch(SUPABASE_URL+"/rest/v1/profiles?anthem_url=not.is.null&select=anthem_title,anthem_artist,anthem_url,anthem_link_type",{
+          headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
+        });
+        const rows = await ar.json();
+        if(Array.isArray(rows)){
+          setAllAnthems(rows.map(r=>({title:r.anthem_title||"Untitled",artist:r.anthem_artist||"",url:r.anthem_url,linkType:r.anthem_link_type||"audio"})));
+        }
+      } catch(e){}
+      setReviewsLoaded(true);
+    })();
+  },[]);
+
+  // Persist friends to localStorage keyed by userId
+  useEffect(()=>{
+    if(!isLoggedIn||!session?.userId)return;
+    lsSet("tacolog:friends:"+session.userId,friends);
+  },[friends]);
+  // Keep AVATAR_CACHE updated
+  useEffect(()=>{
+    if(avatarUrl&&session?.username){
+      AVATAR_CACHE[session.username]=avatarUrl;
+      setAvatarCache(prev=>({...prev,[session.username]:avatarUrl}));
+    }
+  },[avatarUrl,session]);
+
+  // Also populate from friends
+  useEffect(()=>{
+    Object.values(friends).forEach(f=>{
+      if(f.avatar) AVATAR_CACHE[f.username]=f.avatar;
+    });
+  },[friends]);
+
+  // Persist avatar per user — localStorage + Supabase
+  useEffect(()=>{
+    if(!avatarUrl||!session?.userId)return;
+    lsSet("tacolog:avatar:"+session.userId,avatarUrl);
+    // Save to Supabase profiles (truncate if too large — store flag instead)
+    fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId,{
+      method:"PATCH",
+      headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
+      body:JSON.stringify({avatar_url:avatarUrl.length<500000?avatarUrl:null})
+    }).catch(()=>{});
+  },[avatarUrl]);
+
+  const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(null),3000);};
+  const isLoggedIn=session&&session!=="guest";
+  const currentUser=isLoggedIn?session.username:"Guest";
+
+  const allReviews=Object.entries(reviews).flatMap(([id,rs])=>rs.map(r=>({...r,item:MENU_ITEMS.find(i=>i.id===+id)}))).sort((a,b)=>b.id-a.id);
+  const friendReviews=Object.values(friends).flatMap(f=>f.reviews);
+  const allReviewsWithFriends=[...allReviews,...friendReviews];
+  const reviewsByLocation={};
+  allReviewsWithFriends.forEach(r=>{if(r.location){if(!reviewsByLocation[r.location])reviewsByLocation[r.location]=[];reviewsByLocation[r.location].push(r);}});
+  const locationScores={};
+  ALL_LOCATIONS.forEach(({address})=>{
+    const exact=reviewsByLocation[address];
+    const partial=!exact?Object.entries(reviewsByLocation).find(([k])=>k.startsWith(address.split(",")[0]))?.[1]:null;
+    locationScores[address]=scoreLocation(address,exact||partial||[]);
+  });
+  const getReviews=id=>reviews[id]||[];
+  const getAvg=id=>{const r=getReviews(id);return r.length?r.reduce((a,b)=>a+b.rating,0)/r.length:0;};
+  const myReviewsList=allReviews.filter(r=>r.user===currentUser);
+  const earnedAchievements=ACHIEVEMENT_DEFS.filter(a=>a.check(myReviewsList)).map(a=>a.id);
+  const oneWeekAgo=new Date();oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
+  const weeklyReviews=allReviewsWithFriends.filter(()=>true);
+  const weeklyByUser={};
+  weeklyReviews.forEach(r=>{if(!weeklyByUser[r.user])weeklyByUser[r.user]={user:r.user,count:0,shoutouts:0};weeklyByUser[r.user].count++;if(r.employees)weeklyByUser[r.user].shoutouts++;});
+  const weeklyLeaderboard=Object.values(weeklyByUser).sort((a,b)=>b.count-a.count);
+
+  const addFriend=async()=>{
+    // Normalize input — make dashes optional
+    const raw=addCodeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+    const body=raw.startsWith("TACO")?raw.slice(4):raw;
+    if(body.length!==12){setAddCodeError("Invalid code — needs 12 characters after TACO.");return;}
+    const code="TACO-"+body.slice(0,4)+"-"+body.slice(4,8)+"-"+body.slice(8,12);
+    if(isLoggedIn&&code===session.friendCode){setAddCodeError("That's your own code!");return;}
+    if(friends[code]){setAddCodeError("Already added!");return;}
+    // Look up real user from Supabase profiles
+    setAddCodeError("Searching…");
+    try {
+      const results = await sbGet("/rest/v1/profiles?friend_code=eq."+code+"&select=username,friend_code", session?.token);
+      const profile = Array.isArray(results) ? results[0] : null;
+      if(profile){
+        // Load their reviews from Supabase
+        const theirReviews = await sbGet("/rest/v1/reviews?username=eq."+encodeURIComponent(profile.username)+"&select=*&order=created_at.desc", session?.token);
+        const mappedReviews = Array.isArray(theirReviews) ? theirReviews.map(r=>({
+          id:r.id, itemId:r.item_id, user:r.username, rating:r.rating,
+          text:r.review_text, borough:r.borough, location:r.location,
+          employees:r.employees, price:r.price, safetyLight:r.safety_light,
+          date:new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
+          item:MENU_ITEMS.find(i=>i.id===r.item_id),
+        })) : [];
+        const friendObj={username:profile.username, code:profile.friend_code, borough:"NYC", reviews:mappedReviews};
+        const updatedFriends = {...friends,[code]:friendObj};
+        setFriends(updatedFriends);
+        setAddCodeInput("");setAddCodeError("");
+        showToast("🎉 "+profile.username+" added!");
+        // Immediately persist to localStorage
+        lsSet("tacolog:friends:"+session?.userId, updatedFriends);
+      } else {
+        setAddCodeError("Code not found. Ask your friend to share their code from their profile.");
+      }
+    } catch(e) {
+      setAddCodeError("Couldn't connect. Try again.");
+    }
+  };
+  const removeFriend=code=>{setFriends(prev=>{const n={...prev};delete n[code];return n;});if(selectedFriend&&selectedFriend.code===code)setSelectedFriend(null);};
+
+  const getAnthemLinkType=(url)=>{
+    if(!url)return null;
+    if(url.includes("youtube.com")||url.includes("youtu.be"))return"youtube";
+    if(url.includes("spotify.com"))return"spotify";
+    if(url.includes("soundcloud.com"))return"soundcloud";
+    return"audio";
+  };
+
+  const saveAnthem=()=>{
+    let newAnthem=null;
+    if(anthemDraft.url.trim()){
+      const linkType=getAnthemLinkType(anthemDraft.url.trim());
+      newAnthem={title:anthemDraft.title||"My Anthem",artist:anthemDraft.artist||"",url:anthemDraft.url.trim(),isFile:false,linkType};
+    }
+    if(newAnthem){
+      setAnthem(newAnthem);
+      // Save to Supabase profiles
+      if(session?.userId){
+        const anthemData={anthem_title:newAnthem.title,anthem_artist:newAnthem.artist,anthem_url:newAnthem.isFile?null:newAnthem.url,anthem_link_type:newAnthem.linkType};
+        fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId,{
+          method:"PATCH",
+          headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
+          body:JSON.stringify(anthemData)
+        }).catch(()=>{});
+      }
+    }
+    setShowAnthemModal(false);showToast("🎵 Anthem saved!");
+  };
+  const toggleAnthem=()=>{
+    if(!anthem)return;
+    if(anthemAudio){if(anthemPlaying){anthemAudio.pause();setAnthemPlaying(false);}else{anthemAudio.play().catch(()=>{});setAnthemPlaying(true);}}
+    else{const a=new Audio(anthem.url);a.loop=true;a.play().catch(()=>showToast("⚠️ Can't autoplay — try a direct MP3 link."));setAnthemAudio(a);setAnthemPlaying(true);}
+  };
+
+  const playPony=()=>{
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const play=(freq,start,dur)=>{const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;o.type="triangle";g.gain.setValueAtTime(0,ctx.currentTime+start);g.gain.linearRampToValueAtTime(0.18,ctx.currentTime+start+0.02);g.gain.linearRampToValueAtTime(0,ctx.currentTime+start+dur);o.start(ctx.currentTime+start);o.stop(ctx.currentTime+start+dur+0.05);};
+      play(392,0,0.18);play(494,0.2,0.18);play(587,0.4,0.18);play(784,0.62,0.45);play(740,1.12,0.18);play(659,1.32,0.18);play(587,1.52,0.55);
+    }catch{}
+    setPonyPlaying(true);setTimeout(()=>setPonyPlaying(false),4000);
+  };
+
+  const submitReview=async()=>{
+    if(!isLoggedIn){showToast("Sign in to post reviews!");return;}
+    const item=modalItemId?MENU_ITEMS.find(i=>i.id===modalItemId):selectedItem;
+    if(!draft.rating||!item)return;
+    if(!draft.location){showToast("📍 Please select a location!");return;}
+    const r={...draft,user:currentUser,itemId:item.id,date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),id:Date.now()};
+    // Optimistically update UI, then persist to Supabase
+    const newReviews={...reviews,[item.id]:[r,...(reviews[item.id]||[])]};
+    setReviews(newReviews);
+    const ok = await saveReview(r, session?.userId, session?.token);
+    if(!ok) showToast("⚠️ Saved locally — check your Supabase connection.");
+    setShowModal(false);setModalItemId(null);
+    setDraft({rating:0,text:"",borough:"",location:"",employees:"",price:"",safetyLight:""});
+    showToast("✅ Logged: "+item.name+"! 🐴");
+    playPony();
+  };
+
+  const deleteReview=async(review)=>{
+    if(!window.confirm("Delete this review?"))return;
+    // Remove from local state
+    setReviews(prev=>{
+      const updated={...prev};
+      if(updated[review.itemId])updated[review.itemId]=updated[review.itemId].filter(r=>r.id!==review.id);
+      return updated;
+    });
+    // Delete from Supabase
+    try {
+      await fetch(SUPABASE_URL+"/rest/v1/reviews?id=eq."+review.id, {
+        method:"DELETE",
+        headers:{...sbHeaders(session?.token),"Content-Type":"application/json"}
+      });
+      showToast("🗑️ Review deleted.");
+    } catch(e){ showToast("⚠️ Couldn't delete from server."); }
+  };
+
+  const saveEditedReview=async()=>{
+    if(!editingReview)return;
+    if(!editingReview.location){showToast("📍 Please select a location!");return;}
+    // Update local state
+    setReviews(prev=>{
+      const updated={...prev};
+      if(updated[editingReview.itemId])
+        updated[editingReview.itemId]=updated[editingReview.itemId].map(r=>r.id===editingReview.id?editingReview:r);
+      return updated;
+    });
+    // Update in Supabase
+    try {
+      await fetch(SUPABASE_URL+"/rest/v1/reviews?id=eq."+editingReview.id, {
+        method:"PATCH",
+        headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
+        body:JSON.stringify({
+          rating:editingReview.rating, review_text:editingReview.text||null,
+          borough:editingReview.borough||null, location:editingReview.location||null,
+          employees:editingReview.employees||null,
+          price:editingReview.price?parseFloat(editingReview.price):null,
+          safety_light:editingReview.safetyLight||null,
+        })
+      });
+      showToast("✅ Review updated!");
+    } catch(e){ showToast("⚠️ Couldn't save to server."); }
+    setEditingReview(null);
+  };
+
+  const saveUsername=async()=>{
+    const uname=newUsername.trim().toLowerCase();
+    if(!uname||uname.length<3||uname.length>20){setUsernameError("3-20 characters.");return;}
+    if(!/^[a-z0-9_]+$/.test(uname)){setUsernameError("Letters, numbers, underscores only.");return;}
+    try {
+      const res = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId, {
+        method:"PATCH",
+        headers:{...sbHeaders(session?.token),"Prefer":"return=minimal"},
+        body:JSON.stringify({username:newUsername.trim()})
+      });
+      if(res.ok){
+        const updated={...session,username:newUsername.trim()};
+        saveSession(updated);setSession(updated);
+        setEditingUsername(false);setUsernameError("");
+        showToast("✅ Username updated!");
+      } else { setUsernameError("Username may already be taken."); }
+    } catch(e){ setUsernameError("Couldn't connect."); }
+  };
+
+  const filteredItems=MENU_ITEMS.filter(i=>filterCat==="All"||i.category===filterCat).filter(i=>i.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sortBy==="rating"?getAvg(b.id)-getAvg(a.id):sortBy==="reviewed"?getReviews(b.id).length-getReviews(a.id).length:a.id-b.id);
+  const filteredLocs=draft.borough?(LOCATIONS_BY_BOROUGH[draft.borough]||[]).filter(l=>l.toLowerCase().includes(locSearch.toLowerCase())):ALL_LOCATIONS.filter(l=>l.address.toLowerCase().includes(locSearch.toLowerCase())).map(l=>l.address);
+
+  const openRatingModal=(item=null)=>{
+    if(!isLoggedIn){showToast("Sign in to log a review!");setView("auth");return;}
+    if(item)setSelectedItem(item);
+    setModalItemId(item?.id||null);
+    setShowModal(true);
+  };
+
+  if(!authChecked) return(
+    <div style={{minHeight:"100vh",background:"#0d0520",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <div style={{fontSize:52}}>🌮</div>
+      <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:4,color:"#a78bfa"}}>TACOLOG NYC</div>
+      <div style={{color:"#5a3f80",fontSize:13}}>{sdkReady===false?"Could not connect to server — check your network.":"Connecting to the Bell…"}</div>
+    </div>
+  );
+  if(session===null) return <AuthScreen sdkReady={sdkReady} onLogin={s=>{setSession(s||"guest");if(s)showToast("Welcome, "+s.username+"! 🌮");}}/>;
+
+  const NAV_ITEMS=[["home","🏠","Home"],["menu","🌮","Menu"],["activity","📋","Activity"],["locations","📍","Locations"],["friends","👥","Friends"],["leaderboard","🏆","Board"],["profile","👤","Profile"]];
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0d0520",fontFamily:"'Nunito',sans-serif",color:"#f0e6ff",overflowX:"hidden",paddingBottom:70}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#1a0d35}::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:3px}
+        .card{background:rgba(26,13,53,0.9);border:1px solid #2a1550;border-radius:16px;transition:transform 0.18s,box-shadow 0.18s;cursor:pointer;}
+        .card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(124,58,237,0.3);}
+        .btn{background:linear-gradient(135deg,#7c3aed,#db2777);border:none;color:#fff;padding:11px 22px;border-radius:30px;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;cursor:pointer;transition:opacity 0.2s;touch-action:manipulation;}
+        .btn:hover{opacity:0.88;}
+        .btn:disabled{opacity:0.35;cursor:not-allowed;}
+        .inp{background:#1a0d35;border:2px solid #3a2060;border-radius:12px;color:#f0e6ff;padding:11px 14px;font-family:'Nunito',sans-serif;font-size:14px;width:100%;outline:none;transition:border-color 0.2s;}
+        .inp:focus{border-color:#7c3aed;}
+        .st{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;color:#c4b5fd;margin-bottom:10px;}
+        .pb{padding:6px 14px;border-radius:20px;border:1px solid;background:transparent;cursor:pointer;font-family:Nunito;font-weight:700;font-size:12px;transition:all 0.15s;touch-action:manipulation;min-height:36px;}
+        @keyframes eq0{from{height:4px}to{height:14px}}@keyframes eq1{from{height:6px}to{height:16px}}@keyframes eq2{from{height:3px}to{height:12px}}@keyframes eq3{from{height:8px}to{height:18px}}
+        @keyframes ponyPop{from{transform:scale(0) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}
+        @keyframes ponyBounce{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-12px) rotate(5deg)}}
+        @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+        @media(min-width:640px){.mobile-only{display:none!important}.desktop-nav{display:flex!important}}
+        @media(max-width:639px){.desktop-nav{display:none!important}.mobile-only{display:flex!important}}
+      `}</style>
+
+      {/* DESKTOP NAV */}
+      <nav className="desktop-nav" style={{background:"rgba(13,5,32,0.96)",backdropFilter:"blur(12px)",borderBottom:"1px solid #1e0d40",position:"sticky",top:0,zIndex:100,padding:"0 16px",alignItems:"center",justifyContent:"space-between",height:54}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>setView("home")}>
+          <span style={{fontSize:20}}>🌮</span>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:2,background:"linear-gradient(135deg,#a78bfa,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>TACOLOG NYC</div>
+        </div>
+        <div style={{display:"flex",gap:2,alignItems:"center"}}>
+          {NAV_ITEMS.map(([id,icon,label])=>(
+            <button key={id} onClick={()=>setView(id)} style={{background:view===id?"#7c3aed":"none",border:"none",cursor:"pointer",padding:"6px 12px",borderRadius:20,fontFamily:"Nunito",fontWeight:700,fontSize:13,color:view===id?"#fff":"#a78bfa",transition:"all 0.2s"}}>{icon} {label}</button>
+          ))}
+          <div style={{width:1,height:20,background:"#2a1550",margin:"0 6px"}}/>
+          {isLoggedIn
+            ?<div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:12,color:"#9d7cc7",fontWeight:700}}>👤 {session.username}</span>
+              <button className="btn" style={{fontSize:11,padding:"6px 14px"}} onClick={()=>openRatingModal()}>+ Log Rating</button>
+              <button onClick={()=>{clearSession();setSession(null);setReviews({});}} style={{background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",fontSize:11,padding:"5px 12px",cursor:"pointer",fontFamily:"Nunito",fontWeight:700}}>Sign Out</button>
+            </div>
+            :<div style={{display:"flex",gap:8}}>
+              <button className="btn" style={{fontSize:12,padding:"7px 16px"}} onClick={()=>setSession(null)}>Sign In</button>
+            </div>
+          }
+        </div>
+      </nav>
+
+      {/* MOBILE TOP BAR + HAMBURGER DROPDOWN */}
+      <div className="mobile-only" style={{background:"rgba(13,5,32,0.98)",backdropFilter:"blur(12px)",borderBottom:"1px solid #1e0d40",position:"sticky",top:0,zIndex:200}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 14px",height:50}}>
+          <button onClick={()=>setMobileMenuOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:"6px",display:"flex",flexDirection:"column",gap:5,justifyContent:"center"}}>
+            <span style={{display:"block",width:22,height:2,background:mobileMenuOpen?"#a78bfa":"#c4b5fd",borderRadius:2,transition:"all 0.2s",transform:mobileMenuOpen?"rotate(45deg) translate(5px,5px)":"none"}}/>
+            <span style={{display:"block",width:22,height:2,background:mobileMenuOpen?"transparent":"#c4b5fd",borderRadius:2,transition:"all 0.2s"}}/>
+            <span style={{display:"block",width:22,height:2,background:mobileMenuOpen?"#a78bfa":"#c4b5fd",borderRadius:2,transition:"all 0.2s",transform:mobileMenuOpen?"rotate(-45deg) translate(5px,-5px)":"none"}}/>
+          </button>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:2,background:"linear-gradient(135deg,#a78bfa,#f472b6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>🌮 TACOLOG NYC</div>
+          {isLoggedIn
+            ?<button className="btn" style={{fontSize:12,padding:"7px 14px"}} onClick={()=>openRatingModal()}>+ Rate</button>
+            :<button className="btn" style={{fontSize:12,padding:"7px 14px"}} onClick={()=>setSession(null)}>Sign In</button>
+          }
+        </div>
+        {mobileMenuOpen&&<div style={{borderTop:"1px solid #1e0d40",padding:"8px 12px 12px"}}>
+          {NAV_ITEMS.map(([id,icon,label])=>(
+            <button key={id} onClick={()=>{setView(id);setMobileMenuOpen(false);}} style={{width:"100%",background:view===id?"rgba(124,58,237,0.15)":"none",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",gap:12,padding:"11px 14px",color:view===id?"#a78bfa":"#c4b5fd",fontFamily:"Nunito",fontWeight:700,fontSize:15,transition:"all 0.15s",touchAction:"manipulation"}}>
+              <span style={{fontSize:20}}>{icon}</span>
+              <span>{label}</span>
+              {view===id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#a78bfa",display:"inline-block"}}/>}
+            </button>
+          ))}
+        </div>}
+      </div>
+
+      <div style={{maxWidth:900,margin:"0 auto",padding:"16px 12px"}}>
+
+        {/* HOME */}
+        {view==="home"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:28,position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 0%,rgba(124,58,237,0.2) 0%,transparent 70%)",pointerEvents:"none"}}/>
+              <div style={{fontSize:44,marginBottom:6}}>🌮</div>
+              <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"clamp(38px,8vw,60px)",letterSpacing:4,background:"linear-gradient(135deg,#c4b5fd,#f9a8d4,#fbbf24)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1,marginBottom:8}}>RATE THE BELL</h1>
+              <p style={{color:"#9d7cc7",fontSize:14,maxWidth:360,margin:"0 auto 16px",lineHeight:1.6}}>Your NYC Taco Bell diary. Log every order, rate every bite, rep your borough.</p>
+              <button className="btn" onClick={()=>isLoggedIn?openRatingModal():setSession(null)} style={{fontSize:14,padding:"11px 28px"}}>{isLoggedIn?"Log a Rating →":"Sign In to Rate →"}</button>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:20}}>
+              {[{label:"Menu Items",val:MENU_ITEMS.length,icon:"🌮"},{label:"NYC Locations",val:ALL_LOCATIONS.length,icon:"📍"},{label:"Reviews",val:allReviews.length,icon:"⭐"},{label:"Shoutouts",val:allReviews.filter(r=>r.employees).length,icon:"👏"}].map(s=>(
+                <div key={s.label} style={{background:"rgba(124,58,237,0.1)",border:"1px solid #2a1550",borderRadius:12,padding:"12px",textAlign:"center"}}>
+                  <div style={{fontSize:20}}>{s.icon}</div>
+                  <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:26,color:"#a78bfa"}}>{s.val}</div>
+                  <div style={{color:"#7c5cad",fontSize:10,fontWeight:700}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 1. NYC LOCATIONS */}
+            <h2 className="st">📍 NYC LOCATIONS</h2>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8,marginBottom:20}}>
+              {Object.entries(LOCATIONS_BY_BOROUGH).map(([b,locs])=>{
+                const bScores=locs.map(a=>locationScores[a]).filter(Boolean);
+                const topScore=bScores.length?Math.max(...bScores.map(s=>s.total)):null;
+                const tier=getPopularityTier(topScore);
+                return(<div key={b} onClick={()=>setView("locations")} style={{background:BOROUGH_COLORS[b]+"18",border:"1px solid "+BOROUGH_COLORS[b]+"40",borderRadius:12,padding:"10px",textAlign:"center",cursor:"pointer"}}>
+                  <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:13,color:BOROUGH_COLORS[b]}}>{b}</div>
+                  <div style={{fontSize:22,fontFamily:"'Bebas Neue',cursive",color:"#f0e6ff"}}>{locs.length}</div>
+                  <div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>locations</div>
+                  {topScore!==null&&<div style={{marginTop:3,fontSize:10,color:tier.color,fontWeight:700}}>{tier.icon} {tier.label}</div>}
+                </div>);
+              })}
+            </div>
+
+            {/* 2. FRIENDS' ACTIVITY */}
+            {friendReviews.length>0&&<>
+              <h2 className="st" style={{marginTop:4}}>👥 FRIENDS' ACTIVITY</h2>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+                {[...friendReviews].sort((a,b)=>b.id-a.id).slice(0,4).map(r=>(
+                  <div key={r.id} style={{position:"relative"}}>
+                    <div style={{position:"absolute",top:8,right:8,zIndex:1,background:"rgba(124,58,237,0.2)",border:"1px solid #3a2060",borderRadius:20,padding:"2px 8px",fontSize:9,fontWeight:700,color:"#a78bfa",fontFamily:"Nunito"}}>👥 {r.user}</div>
+                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>
+                  </div>
+                ))}
+                <button onClick={()=>setView("friends")} style={{background:"none",border:"1px solid #2a1550",borderRadius:10,color:"#7c5cad",padding:"9px",fontFamily:"Nunito",fontWeight:700,fontSize:12,cursor:"pointer"}}>See all friend activity →</button>
+              </div>
+            </>}
+
+            {/* 3. TOP REVIEWERS */}
+            {weeklyLeaderboard.length>0&&<>
+              <h2 className="st">🏆 TOP REVIEWERS</h2>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+                {weeklyLeaderboard.slice(0,3).map((u,i)=>(
+                  <div key={u.user} style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:i===0?22:16,width:28}}>{i===0?"🥇":i===1?"🥈":"🥉"}</span>
+                    <div style={{flex:1}}><div style={{fontWeight:800,fontSize:13}}>{u.user}</div><div style={{fontSize:11,color:"#7c5cad"}}>{u.count} reviews · {u.shoutouts} shoutouts</div></div>
+                  </div>
+                ))}
+              </div>
+            </>}
+
+            {/* 4. POPULAR ANTHEMS */}
+            {(()=>{
+              if(allAnthems.length===0)return null;
+              const grouped={};
+              allAnthems.forEach(a=>{
+                const key=(a.title||"").toLowerCase().trim();
+                if(!key)return;
+                if(!grouped[key]){grouped[key]={...a,count:0};}
+                grouped[key].count++;
+              });
+              const sorted=Object.values(grouped).sort((a,b)=>b.count-a.count).slice(0,10);
+              if(sorted.length===0)return null;
+              return(<>
+                <h2 className="st">🎵 POPULAR ANTHEMS</h2>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+                  {sorted.map((a,i)=>(
+                    <div key={i} style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:12,padding:"10px 14px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#db2777)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:15,color:"#fff",flexShrink:0}}>#{i+1}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:800,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.title}</div>
+                        <div style={{fontSize:10,color:"#9d7cc7"}}>{a.artist||""}{a.count>1&&<span style={{color:"#a78bfa",fontWeight:700}}> · {a.count} listeners</span>}</div>
+                      </div>
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" style={{background:a.linkType==="youtube"?"#ff0000":a.linkType==="spotify"?"#1db954":a.linkType==="soundcloud"?"#ff5500":"#7c3aed",borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:800,color:"#fff",textDecoration:"none",flexShrink:0,whiteSpace:"nowrap"}}>{a.linkType==="youtube"?"▶ YT":a.linkType==="spotify"?"▶ Spotify":a.linkType==="soundcloud"?"▶ SC":"▶ Play"}</a>
+                    </div>
+                  ))}
+                </div>
+              </>);
+            })()}
+
+            {/* 5. RECENT ACTIVITY */}
+            {allReviews.length>0&&<>
+              <h2 className="st">🕐 RECENT ACTIVITY</h2>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {allReviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>)}
+              </div>
+            </>}
+          </div>
+        )}
+
+        {/* MENU */}
+        {view==="menu"&&(
+          <div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>🌮 THE MENU <span style={{fontSize:13,color:"#7c5cad"}}>— {MENU_ITEMS.length} ITEMS</span></h1>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+              <input className="inp" style={{flex:1,minWidth:140}} placeholder="🔍 Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+              <select className="inp" style={{width:"auto",minWidth:130}} value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+                <option value="default">Default</option><option value="rating">Top Rated</option><option value="reviewed">Most Reviewed</option>
+              </select>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+              {CATEGORIES.map(c=><button key={c} className="pb" onClick={()=>setFilterCat(c)} style={{borderColor:filterCat===c?"#7c3aed":"#2a1550",background:filterCat===c?"#7c3aed":"transparent",color:filterCat===c?"#fff":"#9d7cc7"}}>{c}</button>)}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10}}>
+              {filteredItems.map(item=>{
+                const avg=getAvg(item.id);const cnt=getReviews(item.id).length;
+                return(<div key={item.id} className="card" style={{padding:14}} onClick={()=>{setSelectedItem(item);setView("detail");}}>
+                  <div style={{fontSize:30,marginBottom:5}}>{item.emoji}</div>
+                  <div style={{fontWeight:800,fontSize:12,marginBottom:2,lineHeight:1.3}}>{item.name}</div>
+                  <span style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd",padding:"2px 7px",borderRadius:20,fontSize:9,fontWeight:700,display:"inline-block",marginBottom:6}}>{item.category}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{color:"#FFD700",fontSize:12}}>★</span>
+                    <span style={{fontWeight:800,color:avg?"#fbbf24":"#4a3070",fontSize:12}}>{avg?avg.toFixed(1):"—"}</span>
+                    {cnt>0&&<span style={{color:"#4a3070",fontSize:10}}>({cnt})</span>}
+                  </div>
+                </div>);
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* DETAIL */}
+        {view==="detail"&&selectedItem&&(
+          <div>
+            <button onClick={()=>setView("menu")} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:14,marginBottom:14,display:"flex",alignItems:"center",gap:5,padding:0}}>← Back</button>
+            <div style={{background:"rgba(124,58,237,0.07)",border:"1px solid #2a1550",borderRadius:18,padding:20,marginBottom:16}}>
+              <div style={{fontSize:52,marginBottom:8}}>{selectedItem.emoji}</div>
+              <span style={{background:"rgba(124,58,237,0.2)",color:"#c4b5fd",padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700}}>{selectedItem.category}</span>
+              <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"clamp(24px,5vw,32px)",letterSpacing:2,lineHeight:1,margin:"8px 0"}}>{selectedItem.name}</h1>
+              <p style={{color:"#9d7cc7",lineHeight:1.6,marginBottom:14,fontSize:13}}>{selectedItem.desc}</p>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                <StarRating value={Math.round(getAvg(selectedItem.id))} size={22}/>
+                <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,color:"#fbbf24"}}>{getAvg(selectedItem.id)?getAvg(selectedItem.id).toFixed(1):"—"}</span>
+                <span style={{color:"#5a3f80",fontSize:11}}>({getReviews(selectedItem.id).length})</span>
+              </div>
+              <button className="btn" style={{fontSize:13,padding:"10px 22px"}} onClick={()=>openRatingModal(selectedItem)}>+ Log Your Rating</button>
+            </div>
+            <h2 className="st">REVIEWS</h2>
+            {getReviews(selectedItem.id).length===0
+              ?<div style={{color:"#5a3f80",textAlign:"center",padding:"28px",border:"1px dashed #2a1550",borderRadius:12}}><div style={{fontSize:28}}>🌮</div><p style={{marginTop:6,fontSize:12}}>Be the first to review!</p></div>
+              :<div style={{display:"flex",flexDirection:"column",gap:9}}>{getReviews(selectedItem.id).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache}/>)}</div>
+            }
+          </div>
+        )}
+
+        {/* ACTIVITY */}
+        {view==="activity"&&(
+          <div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:16}}>📋 ACTIVITY</h1>
+            {allReviewsWithFriends.length===0
+              ?<div style={{textAlign:"center",padding:"40px",color:"#5a3f80"}}><div style={{fontSize:40}}>🌮</div><p style={{marginTop:8,fontSize:13}}>No reviews yet!</p><button className="btn" style={{marginTop:14,fontSize:13}} onClick={()=>setView("menu")}>Browse Menu</button></div>
+              :<div style={{display:"flex",flexDirection:"column",gap:9}}>
+                {[...allReviews,...friendReviews].sort((a,b)=>b.id-a.id).map(r=>(
+                  <ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>
+                ))}
+              </div>
+            }
+          </div>
+        )}
+
+        {/* LOCATIONS */}
+        {view==="locations"&&<LocationsView locationScores={locationScores} reviewsByLocation={reviewsByLocation} setSelectedItem={setSelectedItem} setView={setView}/>}
+
+        {/* LEADERBOARD */}
+        {view==="leaderboard"&&(()=>{
+          // Compute derived leaderboard data
+          const empCounts={};
+          allReviewsWithFriends.filter(r=>r.employees).forEach(r=>{
+            r.employees.split(/[,&]+/).map(e=>e.trim()).filter(Boolean).forEach(e=>{empCounts[e]=(empCounts[e]||0)+1;});
+          });
+          const topEmployees=Object.entries(empCounts).sort((a,b)=>b[1]-a[1]);
+          const itemReviewCounts=MENU_ITEMS.map(i=>({item:i,count:getReviews(i.id).length,avg:getAvg(i.id)}))
+            .filter(x=>x.count>0).sort((a,b)=>b.count-a.count);
+          const topLocations=ALL_LOCATIONS
+            .map(({address,borough})=>({address,borough,score:locationScores[address]}))
+            .filter(l=>l.score&&l.score.total>0)
+            .sort((a,b)=>b.score.total-a.score.total)
+            .slice(0,5);
+
+          const LeaderCard=({title,children})=>(
+            <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:14,padding:14}}>
+              <div className="st" style={{fontSize:16,marginBottom:8}}>{title}</div>
+              {children}
+            </div>
+          );
+          const LeaderRow=({rank,label,sub,color,onClick})=>(
+            <div onClick={onClick} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #1a0d35",cursor:onClick?"pointer":"default"}} onMouseEnter={e=>onClick&&(e.currentTarget.style.opacity="0.75")} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+              <span style={{fontSize:15,width:22,flexShrink:0}}>{rank===0?"🥇":rank===1?"🥈":rank===2?"🥉":rank+1+"."}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div><div style={{fontSize:10,color}}>{sub}</div></div>
+            </div>
+          );
+          const Empty=({msg})=><p style={{color:"#5a3f80",fontSize:12,padding:"4px 0"}}>{msg}</p>;
+
+          return(
+          <div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>🏆 LEADERBOARD</h1>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12,marginBottom:12}}>
+
+              {/* Most Reviews */}
+              <LeaderCard title="📝 Most Reviews">
+                {weeklyLeaderboard.length===0?<Empty msg="No reviews yet!"/>:
+                  weeklyLeaderboard.slice(0,5).map((u,i)=><LeaderRow key={u.user} rank={i} label={u.user} sub={u.count+" review"+(u.count!==1?"s":"")} color="#a78bfa"/>)}
+              </LeaderCard>
+
+              {/* MVP Employees */}
+              <LeaderCard title="🌟 MVP Employees">
+                {topEmployees.length===0?<Empty msg="No employee shoutouts yet!"/>:
+                  topEmployees.slice(0,5).map(([name,count],i)=><LeaderRow key={name} rank={i} label={name} sub={count+" shoutout"+(count!==1?"s":"")+" received"} color="#fbbf24"/>)}
+              </LeaderCard>
+
+              {/* Most Reviewed Items */}
+              <LeaderCard title="🔥 Most Reviewed Items">
+                {itemReviewCounts.length===0?<Empty msg="No reviews yet!"/>:
+                  itemReviewCounts.slice(0,5).map((x,i)=><LeaderRow key={x.item.id} rank={i} label={x.item.emoji+" "+x.item.name} sub={x.count+" review"+(x.count!==1?"s":"")+" · "+x.avg.toFixed(1)+"★ avg"} color="#f97316" onClick={()=>{setSelectedItem(x.item);setView("detail");}}/>)}
+              </LeaderCard>
+
+              {/* Top Locations */}
+              <LeaderCard title="📍 Top Locations">
+                {topLocations.length===0?<Empty msg="No rated locations yet!"/>:
+                  topLocations.map((l,i)=>{const tier=getPopularityTier(l.score.total);return(
+                    <LeaderRow key={l.address} rank={i} label={l.address.split(",")[0]} sub={tier.icon+" "+tier.label+" · "+l.score.total+"/100 · "+l.borough} color={tier.color} onClick={()=>setView("locations")}/>
+                  );})}
+              </LeaderCard>
+
+              {/* Top Rated Items */}
+              <LeaderCard title="⭐ Top Rated Items">
+                {[...MENU_ITEMS].sort((a,b)=>getAvg(b.id)-getAvg(a.id)).filter(i=>getAvg(i.id)>0).slice(0,5).map((item,i)=>(
+                  <LeaderRow key={item.id} rank={i} label={item.emoji+" "+item.name} sub={getAvg(item.id).toFixed(1)+" ★ · "+getReviews(item.id).length+" review"+(getReviews(item.id).length!==1?"s":"")} color="#FFD700" onClick={()=>{setSelectedItem(item);setView("detail");}}/>
+                ))}
+                {[...MENU_ITEMS].filter(i=>getAvg(i.id)>0).length===0&&<Empty msg="No rated items yet!"/>}
+              </LeaderCard>
+
+            </div>
+          </div>
+          );
+        })()}
+
+        {/* FRIENDS */}
+        {view==="friends"&&(
+          <div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>👥 FRIENDS</h1>
+            {isLoggedIn&&<div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.2),rgba(219,39,119,0.15))",border:"1px solid #7c3aed",borderRadius:14,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+              <div><div style={{fontSize:9,color:"#a78bfa",fontWeight:700,letterSpacing:2,marginBottom:3}}>YOUR FRIEND CODE</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:2}}>{session.friendCode}</div></div>
+              <button className="btn" style={{fontSize:11,padding:"7px 14px"}} onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(session.friendCode);showToast("📋 Copied!");}}>📋 Copy</button>
+            </div>}
+            <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:13,padding:"14px",marginBottom:16}}>
+              <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:16,letterSpacing:2,color:"#c4b5fd",marginBottom:8}}>ADD A FRIEND</div>
+              <div style={{display:"flex",gap:8,marginBottom:6}}>
+                <input className="inp" style={{fontFamily:"'Bebas Neue',cursive",letterSpacing:1.5,fontSize:13}} placeholder="TACO-XXXX-XXXX-XXXX" value={addCodeInput} onChange={e=>{setAddCodeInput(e.target.value.toUpperCase());setAddCodeError("");}} onKeyDown={e=>e.key==="Enter"&&addFriend()} maxLength={19}/>
+                <button className="btn" style={{whiteSpace:"nowrap",padding:"10px 16px",fontSize:13}} onClick={addFriend}>Add</button>
+              </div>
+              {addCodeError&&<div style={{color:"#f87171",fontSize:11,fontWeight:700,marginBottom:4}}>{addCodeError}</div>}
+              <div style={{fontSize:10,color:"#7c5cad"}}>🧪 {Object.keys(DEMO_FRIENDS).map((code,i)=>(<span key={code}><span style={{color:"#c4b5fd",cursor:"pointer",textDecoration:"underline",fontFamily:"'Bebas Neue',cursive",fontSize:11}} onClick={()=>{setAddCodeInput(code);setAddCodeError("");}}>{code}</span>{i<2&&" · "}</span>))}</div>
+            </div>
+            {Object.keys(friends).length===0
+              ?<div style={{textAlign:"center",padding:"32px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><div style={{fontSize:36}}>👥</div><p style={{marginTop:8,fontSize:12}}>No friends yet!</p></div>
+              :<div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {Object.values(friends).map(f=>{
+                  const isSel=selectedFriend&&selectedFriend.code===f.code;const bc=BOROUGH_COLORS[f.borough]||"#7c3aed";
+                  return(<div key={f.code}>
+                    <div onClick={()=>setSelectedFriend(isSel?null:f)} style={{background:isSel?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:36,height:36,borderRadius:"50%",background:bc+"44",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:16,color:bc,flexShrink:0}}>{f.username[0]}</div>
+                        <div style={{flex:1}}><div style={{fontWeight:800,fontSize:13}}>{f.username}</div><span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {f.borough}</span></div>
+                        <button onClick={e=>{e.stopPropagation();removeFriend(f.code);}} style={{background:"none",border:"1px solid #2a1550",borderRadius:6,color:"#7c5cad",fontSize:10,padding:"3px 8px",cursor:"pointer"}}>✕</button>
+                      </div>
+                    </div>
+                    {isSel&&<div style={{background:"rgba(26,13,53,0.7)",border:"1px solid #2a1550",borderTop:"none",borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
+                      {/* Friend anthem */}
+                      {f.anthem&&<div style={{background:"rgba(124,58,237,0.1)",border:"1px solid #3a2060",borderRadius:10,padding:"10px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:18}}>🎵</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:800,fontSize:12,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.anthem.title}</div>
+                          {f.anthem.artist&&<div style={{fontSize:10,color:"#9d7cc7"}}>{f.anthem.artist}</div>}
+                        </div>
+                        {f.anthem.linkType==="youtube"&&<a href={f.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#ff0000",borderRadius:6,padding:"4px 10px",fontSize:10,fontWeight:800,color:"#fff",textDecoration:"none",flexShrink:0}}>▶ YT</a>}
+                        {f.anthem.linkType==="spotify"&&<a href={f.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#1db954",borderRadius:6,padding:"4px 10px",fontSize:10,fontWeight:800,color:"#fff",textDecoration:"none",flexShrink:0}}>▶ Spotify</a>}
+                        {f.anthem.linkType==="soundcloud"&&<a href={f.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#ff5500",borderRadius:6,padding:"4px 10px",fontSize:10,fontWeight:800,color:"#fff",textDecoration:"none",flexShrink:0}}>▶ SC</a>}
+                        {f.anthem.linkType==="audio"&&f.anthem.url&&<a href={f.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",borderRadius:6,padding:"4px 10px",fontSize:10,fontWeight:800,color:"#fff",textDecoration:"none",flexShrink:0}}>▶ Play</a>}
+                      </div>}
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                        {[{l:"Reviews",v:f.reviews.length},{l:"Avg",v:(f.reviews.reduce((a,r)=>a+r.rating,0)/Math.max(f.reviews.length,1)).toFixed(1)},{l:"Shoutouts",v:f.reviews.filter(r=>r.employees).length}].map(s=>(
+                          <div key={s.l} style={{background:"rgba(124,58,237,0.08)",border:"1px solid #2a1550",borderRadius:8,padding:"8px",textAlign:"center"}}><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:18,color:"#a78bfa"}}>{s.v}</div><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div></div>
+                        ))}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>{f.reviews.map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div>
+                    </div>}
+                  </div>);
+                })}
+              </div>
+            }
+          </div>
+        )}
+
+        {/* PROFILE */}
+        {view==="profile"&&(
+          <div>
+            <div style={{display:"flex",alignItems:"flex-start",gap:14,marginBottom:18,flexWrap:"wrap"}}>
+              {/* Avatar */}
+              <div style={{position:"relative",flexShrink:0}}>
+                <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#db2777)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:28,color:"#fff",overflow:"hidden",border:"2px solid #3a2060"}}>
+                  {avatarUrl?<img src={avatarUrl} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(isLoggedIn?session.username[0].toUpperCase():"G")}
+                </div>
+                {isLoggedIn&&<label style={{position:"absolute",bottom:-2,right:-2,width:22,height:22,borderRadius:"50%",background:"#7c3aed",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:11,border:"2px solid #0d0520"}} title="Change photo">
+                  📷<input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{
+                  // Resize to max 100x100 to keep under Supabase row limit
+                  const img=new Image();
+                  img.onload=()=>{
+                    const canvas=document.createElement('canvas');
+                    const max=100;
+                    let w=img.width,h=img.height;
+                    if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}
+                    canvas.width=w;canvas.height=h;
+                    canvas.getContext('2d').drawImage(img,0,0,w,h);
+                    setAvatarUrl(canvas.toDataURL('image/jpeg',0.7));
+                  };
+                  img.src=ev.target.result;
+                };r.readAsDataURL(f);}}}/>
+                </label>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                {editingUsername
+                  ?<div style={{marginBottom:6}}>
+                    <input className="inp" style={{fontSize:14,padding:"7px 12px",marginBottom:4}} value={newUsername} onChange={e=>setNewUsername(e.target.value)} placeholder="new username" onKeyDown={e=>e.key==="Enter"&&saveUsername()} autoFocus/>
+                    {usernameError&&<div style={{color:"#f87171",fontSize:11,marginBottom:4}}>{usernameError}</div>}
+                    <div style={{display:"flex",gap:6}}>
+                      <button className="btn" style={{fontSize:11,padding:"5px 12px"}} onClick={saveUsername}>Save</button>
+                      <button onClick={()=>{setEditingUsername(false);setUsernameError("");}} style={{background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",fontSize:11,padding:"5px 12px",cursor:"pointer",fontFamily:"Nunito",fontWeight:700}}>Cancel</button>
+                    </div>
+                  </div>
+                  :<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:2,lineHeight:1}}>{isLoggedIn?session.username:"Guest"}</h1>
+                    {isLoggedIn&&<button onClick={()=>{setNewUsername(session.username);setEditingUsername(true);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#5a3f80",padding:2}} title="Edit username">✏️</button>}
+                  </div>
+                }
+                <p style={{color:"#7c5cad",fontSize:12,margin:"3px 0 5px"}}>{isLoggedIn?"NYC Taco Bell Connoisseur":"Browse freely — sign in to rate"} · {myReviewsList.length} ratings</p>
+                {isLoggedIn&&<div style={{fontFamily:"'Bebas Neue',cursive",fontSize:10,letterSpacing:1.5,color:"#a78bfa"}}>{session.friendCode}</div>}
+              </div>
+              {isLoggedIn
+                ?<button onClick={()=>{clearSession();setSession(null);setReviews({});}} style={{background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",fontSize:11,padding:"6px 14px",cursor:"pointer",fontFamily:"Nunito",fontWeight:700}}>Sign Out</button>
+                :<button className="btn" style={{fontSize:12,padding:"8px 18px"}} onClick={()=>setSession(null)}>Sign In</button>
+              }
+            </div>
+
+            {/* Anthem */}
+            {isLoggedIn&&<div style={{background:"rgba(26,13,53,0.95)",border:"2px solid "+anthem?"#7c3aed":"#2a1550",borderRadius:14,padding:"14px 16px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+              {anthem&&<div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 0% 50%,rgba(124,58,237,0.15) 0%,transparent 60%)",pointerEvents:"none"}}/>}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:anthem?10:0,gap:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:16}}>🎵</span><div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd"}}>TACOLOG ANTHEM</div><div style={{fontSize:9,color:"#5a3f80"}}>Your Taco Bell soundtrack</div></div></div>
+                <button className="btn" style={{fontSize:10,padding:"5px 12px"}} onClick={()=>{setAnthemDraft(anthem?{title:anthem.title,artist:anthem.artist,url:anthem.isFile?"":anthem.url}:{title:"",artist:"",url:""});setShowAnthemModal(true);}}>{anthem?"✏️ Change":"+ Set"}</button>
+              </div>
+              {anthem&&<div style={{display:"flex",alignItems:"center",gap:10}}>
+                {anthem.linkType==="audio"||anthem.isFile
+                  ?<button onClick={toggleAnthem} style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#db2777)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                    {anthemPlaying?"⏸":"▶️"}
+                  </button>
+                  :<a href={anthem.url} target="_blank" rel="noopener noreferrer" style={{width:38,height:38,borderRadius:"50%",background:anthem.linkType==="youtube"?"#ff0000":anthem.linkType==="spotify"?"#1db954":"#ff5500",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,textDecoration:"none"}}>▶️</a>
+                }
+                <div style={{flex:1}}><div style={{fontWeight:800,fontSize:13}}>{anthem.title}</div><div style={{fontSize:11,color:"#9d7cc7"}}>{anthem.artist}</div>
+                  {anthem.linkType==="youtube"&&<div style={{fontSize:9,color:"#ff0000",fontWeight:700}}>YouTube</div>}
+                  {anthem.linkType==="spotify"&&<div style={{fontSize:9,color:"#1db954",fontWeight:700}}>Spotify</div>}
+                  {anthem.linkType==="soundcloud"&&<div style={{fontSize:9,color:"#ff5500",fontWeight:700}}>SoundCloud</div>}
+                  {anthemPlaying&&<div style={{display:"flex",gap:2,marginTop:3,alignItems:"flex-end",height:12}}>{[1,2,3,4,5,6].map(i=><div key={i} style={{width:3,background:"#7c3aed",borderRadius:2,animation:"eq"+i%4+" "+0.4+i*0.07+"s ease-in-out infinite alternate"}}/>)}</div>}
+                </div>
+              </div>}
+            </div>}
+
+            {/* Report Card */}
+            <div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.15),rgba(219,39,119,0.1))",border:"1px solid #7c3aed",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
+              <div className="st" style={{fontSize:16,color:"#fbbf24",marginBottom:12}}>📊 BELL REPORT CARD</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>
+                {[{label:"Reviews",val:myReviewsList.length,icon:"📝"},{label:"Avg Rating",val:myReviewsList.length?(myReviewsList.reduce((a,r)=>a+r.rating,0)/myReviewsList.length).toFixed(1):"—",icon:"⭐"},{label:"Shoutouts",val:myReviewsList.filter(r=>r.employees).length,icon:"👏"},{label:"Boroughs",val:new Set(myReviewsList.map(r=>r.borough).filter(Boolean)).size,icon:"🗺️"}].map(s=>(
+                  <div key={s.label} style={{background:"rgba(13,5,32,0.6)",borderRadius:10,padding:"10px",textAlign:"center"}}><div style={{fontSize:18}}>{s.icon}</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:24,color:"#a78bfa"}}>{s.val}</div><div style={{color:"#7c5cad",fontSize:10,fontWeight:700}}>{s.label}</div></div>
+                ))}
+              </div>
+              {myReviewsList.length>0&&(()=>{
+                const bc={};myReviewsList.forEach(r=>{if(r.borough)bc[r.borough]=(bc[r.borough]||0)+1;});
+                return(<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{Object.entries(bc).map(([b,c])=><span key={b} style={{background:BOROUGH_COLORS[b]||"#7c3aed"+"22",color:BOROUGH_COLORS[b]||"#7c3aed",padding:"2px 10px",borderRadius:20,fontSize:11,fontWeight:700}}>📍 {b}: {c}</span>)}</div>);
+              })()}
+            </div>
+
+            {/* Achievements */}
+            <h2 className="st">🏅 ACHIEVEMENTS ({earnedAchievements.length}/{ACHIEVEMENT_DEFS.length})</h2>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:8,marginBottom:18}}>
+              {ACHIEVEMENT_DEFS.map(a=>{
+                const earned=earnedAchievements.includes(a.id);
+                return(<div key={a.id} style={{background:earned?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.5)",border:"1px solid "+earned?"#7c3aed":"#1a0d35",borderRadius:12,padding:"10px",opacity:earned?1:0.4}}>
+                  <div style={{fontSize:22,marginBottom:3}}>{a.icon}</div>
+                  <div style={{fontWeight:800,fontSize:11,color:earned?"#f0e6ff":"#7c5cad"}}>{a.name}</div>
+                  <div style={{fontSize:9,color:"#5a3f80",marginTop:2}}>{a.desc}</div>
+                  {earned&&<div style={{marginTop:4,fontSize:9,color:"#a78bfa",fontWeight:700}}>✓ Earned</div>}
+                </div>);
+              })}
+            </div>
+
+            <h2 className="st">MY RATINGS</h2>
+            {!isLoggedIn
+              ?<div style={{textAlign:"center",padding:"28px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><p style={{fontSize:13}}>Sign in to see your ratings.</p><button className="btn" style={{marginTop:12,fontSize:13}} onClick={()=>setSession(null)}>Sign In</button></div>
+              :myReviewsList.length===0
+                ?<div style={{textAlign:"center",padding:"28px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><p style={{fontSize:13}}>No ratings yet!</p><button className="btn" style={{marginTop:12,fontSize:13}} onClick={()=>openRatingModal()}>Log a Rating</button></div>
+                :<div style={{display:"flex",flexDirection:"column",gap:9}}>{myReviewsList.map(r=>(
+                  <div key={r.id} style={{position:"relative"}}>
+                    <ReviewCard r={r} avatarCache={avatarCache} onClick={()=>{setSelectedItem(r.item);setView("detail");}}/>
+                    <div style={{position:"absolute",top:8,right:8,display:"flex",gap:4}}>
+                      <button onClick={e=>{e.stopPropagation();setEditingReview({...r,locSearch:""});}} style={{background:"rgba(124,58,237,0.85)",border:"none",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:11,color:"#fff",fontWeight:700}}>✏️</button>
+                      <button onClick={e=>{e.stopPropagation();deleteReview(r);}} style={{background:"rgba(239,68,68,0.85)",border:"none",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:11,color:"#fff",fontWeight:700}}>🗑️</button>
+                    </div>
+                  </div>
+                ))}</div>
+            }
+          </div>
+        )}
+      </div>
+
+      {/* ANTHEM MODAL */}
+      {showAnthemModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)",zIndex:250,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}} onClick={e=>e.target===e.currentTarget&&setShowAnthemModal(false)}>
+          <div style={{background:"#120628",border:"1px solid #7c3aed",borderRadius:"20px 20px 0 0",padding:"24px 20px",width:"100%",maxWidth:480,animation:"slideUp 0.3s ease",position:"relative"}}>
+            <button onClick={()=>setShowAnthemModal(false)} style={{position:"absolute",top:12,right:14,background:"none",border:"none",color:"#7c5cad",fontSize:20,cursor:"pointer"}}>✕</button>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:2,marginBottom:16}}>🎵 SET YOUR ANTHEM</div>
+            <Field label="SONG TITLE"><input className="inp" placeholder="e.g. Baja Blast Anthem" value={anthemDraft.title} onChange={e=>setAnthemDraft(d=>({...d,title:e.target.value}))}/></Field>
+            <Field label="ARTIST"><input className="inp" placeholder="e.g. Lil Nas X" value={anthemDraft.artist} onChange={e=>setAnthemDraft(d=>({...d,artist:e.target.value}))}/></Field>
+            <Field label="YOUTUBE / SPOTIFY / SOUNDCLOUD / AUDIO URL" hint="Paste any music link — YouTube, Spotify, SoundCloud, or direct .mp3"><input className="inp" placeholder="https://youtube.com/watch?v=..." value={anthemDraft.url} onChange={e=>setAnthemDraft(d=>({...d,url:e.target.value}))}/></Field>
+            <button className="btn" style={{width:"100%",marginBottom:8}} onClick={()=>saveAnthem()} disabled={!anthemDraft.url.trim()&&!anthem}>Save Anthem 🎵</button>
+            {anthem&&<button onClick={()=>{if(anthemAudio){anthemAudio.pause();setAnthemAudio(null);}setAnthem(null);setAnthemPlaying(false);setShowAnthemModal(false);}} style={{width:"100%",background:"none",border:"1px solid #3a2060",borderRadius:30,color:"#7c5cad",padding:"9px",cursor:"pointer",fontFamily:"Nunito",fontWeight:700,fontSize:12}}>Remove Anthem</button>}
+          </div>
+        </div>
+      )}
+
+      {/* REVIEW MODAL */}
+      {showModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={e=>e.target===e.currentTarget&&setShowModal(false)}>
+          <div style={{background:"#120628",border:"1px solid #3a2060",borderRadius:"20px 20px 0 0",padding:"20px 16px",width:"100%",maxWidth:520,maxHeight:"88vh",overflowY:"auto",animation:"slideUp 0.3s ease",position:"relative",paddingBottom:80}}>
+            <div style={{width:36,height:4,background:"#2a1550",borderRadius:2,margin:"0 auto 16px",flexShrink:0}}/>
+            <button onClick={()=>{setShowModal(false);setModalItemId(null);}} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:"#7c5cad",fontSize:20,cursor:"pointer"}}>✕</button>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:2,marginBottom:14}}>🌮 LOG A RATING</div>
+
+            <Field label="MENU ITEM *">
+              <MenuDropdown value={modalItemId||(selectedItem?.id)||null} onChange={id=>setModalItemId(id)}/>
+            </Field>
+
+            <Field label="YOUR RATING *">
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <StarRating value={draft.rating} onChange={r=>setDraft(d=>({...d,rating:r}))} size={32}/>
+                {draft.rating>0&&<span style={{color:"#a78bfa",fontWeight:700,fontSize:12}}>{STAR_LABELS[draft.rating]}</span>}
+              </div>
+            </Field>
+
+            <Field label="📍 BOROUGH">
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {Object.keys(LOCATIONS_BY_BOROUGH).map(b=><button key={b} className="pb" onClick={()=>{setDraft(d=>({...d,borough:b,location:""}));setLocSearch("");}} style={{borderColor:draft.borough===b?BOROUGH_COLORS[b]:"#2a1550",background:draft.borough===b?BOROUGH_COLORS[b]+"28":"transparent",color:draft.borough===b?BOROUGH_COLORS[b]:"#9d7cc7",fontSize:11}}>{b}</button>)}
+              </div>
+            </Field>
+
+            <Field label="LOCATION *" labelStyle={{color:"#f87171"}}>
+              <input className="inp" style={{marginBottom:6,fontSize:12}} placeholder="🔍 Filter…" value={locSearch} onChange={e=>setLocSearch(e.target.value)}/>
+              <select className="inp" style={{fontSize:12}} value={draft.location} onChange={e=>setDraft(d=>({...d,location:e.target.value}))}>
+                <option value="">Select location…</option>
+                {filteredLocs.map(l=><option key={l} value={l}>{l}</option>)}
+              </select>
+            </Field>
+
+            <Field label="💰 PRICE PAID">
+              <div style={{position:"relative"}}><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#7c5cad",fontWeight:800}}>$</span><input className="inp" style={{paddingLeft:24}} type="number" step="0.01" min="0" placeholder="0.00" value={draft.price} onChange={e=>setDraft(d=>({...d,price:e.target.value}))}/></div>
+            </Field>
+
+            <Field label="🚦 VIBE CHECK">
+              <div style={{display:"flex",gap:8}}>
+                {[{val:"green",color:"#22c55e",label:"All good"},{val:"yellow",color:"#eab308",label:"Felt sus"},{val:"red",color:"#ef4444",label:"Sketch city"}].map(opt=>(
+                  <button key={opt.val} onClick={()=>setDraft(d=>({...d,safetyLight:d.safetyLight===opt.val?"":opt.val}))} style={{flex:1,padding:"10px 4px",borderRadius:10,border:"2px solid "+draft.safetyLight===opt.val?opt.color:"#2a1550",background:draft.safetyLight===opt.val?opt.color+"20":"transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4,minHeight:60}}>
+                    <span style={{width:20,height:20,borderRadius:"50%",background:draft.safetyLight===opt.val?opt.color:opt.color+"44",display:"block"}}/>
+                    <span style={{fontSize:10,fontWeight:700,color:draft.safetyLight===opt.val?opt.color:"#7c5cad"}}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            <Field label="👏 EMPLOYEE SHOUTOUT"><input className="inp" placeholder="Name the legend…" value={draft.employees} onChange={e=>setDraft(d=>({...d,employees:e.target.value}))}/></Field>
+            <Field label="REVIEW"><textarea className="inp" rows={3} placeholder="Sauce level? Freshness? Worth the trek?" value={draft.text} onChange={e=>setDraft(d=>({...d,text:e.target.value}))} style={{resize:"none"}}/></Field>
+
+            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15}} disabled={!draft.rating||(!modalItemId&&!selectedItem)||!draft.location} onClick={submitReview}>Log Rating 🌮</button>
+          </div>
+        </div>
+      )}
+
+      {/* PONY OVERLAY */}
+      {ponyPlaying&&(
+        <div style={{position:"fixed",inset:0,zIndex:999,pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{textAlign:"center",animation:"ponyPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both"}}>
+            <div style={{fontSize:80,animation:"ponyBounce 0.6s ease-in-out infinite alternate",filter:"drop-shadow(0 0 30px rgba(219,39,119,0.9))"}}>🐴</div>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:3,color:"#f472b6",marginTop:6,textShadow:"0 0 20px rgba(244,114,182,0.8)"}}>REVIEW LOGGED!</div>
+          </div>
+          <style>{`@keyframes ponyPop{from{transform:scale(0) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0deg);opacity:1}}@keyframes ponyBounce{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-12px) rotate(5deg)}}`}</style>
+        </div>
+      )}
+
+      {/* EDIT REVIEW MODAL */}
+      {editingReview&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={e=>e.target===e.currentTarget&&setEditingReview(null)}>
+          <div style={{background:"#120829",borderRadius:"20px 20px 0 0",padding:"20px 18px 32px",width:"100%",maxWidth:520,maxHeight:"85vh",overflowY:"auto"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:2,color:"#c4b5fd"}}>✏️ EDIT REVIEW</div>
+              <button onClick={()=>setEditingReview(null)} style={{background:"none",border:"none",color:"#5a3f80",fontSize:22,cursor:"pointer"}}>×</button>
+            </div>
+            {/* Stars */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>RATING</div>
+              <div style={{display:"flex",gap:6}}>
+                {[1,2,3,4,5].map(s=>(
+                  <button key={s} onClick={()=>setEditingReview(r=>({...r,rating:s}))} style={{fontSize:28,background:"none",border:"none",cursor:"pointer",filter:editingReview.rating>=s?"drop-shadow(0 0 6px #fbbf24)":"grayscale(1) opacity(0.3)"}}>⭐</button>
+                ))}
+              </div>
+            </div>
+            {/* Borough */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>BOROUGH</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {Object.keys(LOCATIONS_BY_BOROUGH).map(b=><button key={b} className="pb" onClick={()=>setEditingReview(r=>({...r,borough:b,location:""}))} style={{borderColor:editingReview.borough===b?BOROUGH_COLORS[b]:"#2a1550",background:editingReview.borough===b?BOROUGH_COLORS[b]+"28":"transparent",color:editingReview.borough===b?BOROUGH_COLORS[b]:"#9d7cc7",fontSize:11}}>{b}</button>)}
+              </div>
+            </div>
+            {/* Location — required */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>LOCATION <span style={{color:"#f87171"}}>*</span></div>
+              <select className="inp" style={{fontSize:12}} value={editingReview.location||""} onChange={e=>setEditingReview(r=>({...r,location:e.target.value}))}>
+                <option value="">Select location…</option>
+                {(editingReview.borough?LOCATIONS_BY_BOROUGH[editingReview.borough]||[]:ALL_LOCATIONS.map(l=>l.address)).map(a=><option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {/* Review text */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>REVIEW</div>
+              <textarea className="inp" rows={3} style={{resize:"vertical",fontSize:13}} value={editingReview.text||""} onChange={e=>setEditingReview(r=>({...r,text:e.target.value}))} placeholder="What did you think?"/>
+            </div>
+            {/* Employees */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#c4b5fd",letterSpacing:1,marginBottom:6}}>👏 EMPLOYEE SHOUTOUT</div>
+              <input className="inp" style={{fontSize:13}} value={editingReview.employees||""} onChange={e=>setEditingReview(r=>({...r,employees:e.target.value}))} placeholder="Name(s) who killed it"/>
+            </div>
+            <button className="btn" style={{width:"100%",padding:"13px",fontSize:15,marginTop:6}} onClick={saveEditedReview}>Save Changes ✅</button>
+          </div>
+        </div>
+      )}
+
+      {toast&&<div style={{position:"fixed",bottom:16,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#7c3aed,#db2777)",color:"#fff",padding:"9px 20px",borderRadius:30,fontWeight:700,fontSize:13,zIndex:300,boxShadow:"0 8px 30px rgba(124,58,237,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
+    </div>
+  );
+}
+
+function LocationsView({locationScores,reviewsByLocation,setSelectedItem,setView}){
+  const[locFilter,setLocFilter]=useState("All");
+  const[locSort,setLocSort]=useState("score");
+  const[locSearchQ,setLocSearchQ]=useState("");
+  const[selectedLoc,setSelectedLoc]=useState(null);
+  const scoredLocs=ALL_LOCATIONS.map(({borough,address})=>{const s=locationScores[address];return{borough,address,score:s,tier:getPopularityTier(s?s.total:null),reviews:reviewsByLocation[address]||[]};})
+    .filter(l=>locFilter==="All"||l.borough===locFilter)
+    .filter(l=>l.address.toLowerCase().includes(locSearchQ.toLowerCase()))
+    .sort((a,b)=>{if(locSort==="score")return(b.score?b.score.total:-1)-(a.score?a.score.total:-1);if(locSort==="safety")return(b.score?b.score.safetyScore:-1)-(a.score?a.score.safetyScore:-1);if(locSort==="shoutouts")return(b.score?b.score.shoutoutScore:-1)-(a.score?a.score.shoutoutScore:-1);if(locSort==="price")return(b.score?b.score.priceScore:-1)-(a.score?a.score.priceScore:-1);return a.address.localeCompare(b.address);});
+  return(
+    <div>
+      <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:6}}>📍 LOCATION RANKINGS</h1>
+      <p style={{color:"#7c5cad",marginBottom:14,fontSize:12}}>Rating · Safety · Shoutouts · Price Value</p>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        <input className="inp" style={{flex:1,minWidth:140}} placeholder="🔍 Search…" value={locSearchQ} onChange={e=>setLocSearchQ(e.target.value)}/>
+        <select className="inp" style={{width:"auto",minWidth:140}} value={locSort} onChange={e=>setLocSort(e.target.value)}>
+          <option value="score">Overall Score</option><option value="safety">Safest</option><option value="shoutouts">Most Shoutouts</option><option value="price">Best Value</option><option value="alpha">A–Z</option>
+        </select>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        {["All","Manhattan","Brooklyn","Bronx","Queens","Staten Island"].map(b=><button key={b} className="pb" onClick={()=>setLocFilter(b)} style={{borderColor:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#2a1550",background:locFilter===b?BOROUGH_COLORS[b]||"#7c3aed"+"28":"transparent",color:locFilter===b?(BOROUGH_COLORS[b]||"#7c3aed"):"#9d7cc7"}}>{b}</button>)}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:9}}>
+        {scoredLocs.map((loc,i)=>{
+          const isSel=selectedLoc&&selectedLoc.address===loc.address;
+          const bc=BOROUGH_COLORS[loc.borough]||"#7c3aed";
+          const has=loc.score!==null&&loc.score!==undefined;
+          return(
+            <div key={loc.address}>
+              <div onClick={()=>setSelectedLoc(isSel?null:loc)} style={{background:isSel?"rgba(124,58,237,0.14)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:isSel?"13px 13px 0 0":13,padding:"11px 14px",cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:has?loc.tier.color+"22":"rgba(42,21,80,0.4)",border:"2px solid "+has?loc.tier.color:"#2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Bebas Neue',cursive",fontSize:i<3&&has?14:11,color:has?loc.tier.color:"#4a3070"}}>{has?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):"—"}</div>
+                  <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:12,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{loc.address}</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                      <span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {loc.borough}</span>
+                      {has&&<span style={{background:loc.tier.bg,color:loc.tier.color,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>{loc.tier.icon} {loc.tier.label}</span>}
+                      {loc.reviews.length>0&&<span style={{color:"#5a3f80",fontSize:9}}>{loc.reviews.length} review{loc.reviews.length!==1?"s":""}</span>}
+                    </div>
+                  </div>
+                  {has?<div style={{width:40,height:40,borderRadius:"50%",background:"conic-gradient("+loc.tier.color+" "+loc.score.total*3.6+"deg,#1a0d35 0deg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><div style={{width:30,height:30,borderRadius:"50%",background:"#0d0520",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}><span style={{fontFamily:"'Bebas Neue',cursive",fontSize:12,color:loc.tier.color,lineHeight:1}}>{loc.score.total}</span></div></div>
+                  :<div style={{width:40,height:40,borderRadius:"50%",background:"rgba(42,21,80,0.4)",border:"2px solid #2a1550",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>❓</div>}
+                </div>
+              </div>
+              {isSel&&(
+                <div style={{background:"rgba(26,13,53,0.7)",border:"1px solid #7c3aed",borderTop:"none",borderRadius:"0 0 13px 13px",padding:"12px 14px"}}>
+                  {has?<>
+                    <ScoreBar label="⭐ Rating (35pts)" val={loc.score.ratingScore} max={35} color="#fbbf24"/>
+                    <ScoreBar label="🚦 Safety (30pts)" val={loc.score.safetyScore} max={30} color="#22c55e"/>
+                    <ScoreBar label="👏 Shoutouts (20pts)" val={loc.score.shoutoutScore} max={20} color="#a78bfa"/>
+                    <ScoreBar label="💰 Price Value (15pts)" val={loc.score.priceScore} max={15} color="#f97316"/>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:10}}>
+                      {[{l:"Rating",v:loc.score.avgRating?loc.score.avgRating.toFixed(1)+"★":"—",c:"#fbbf24"},{l:"Safety",v:Math.round(loc.score.avgSafety*100)+"%",c:"#22c55e"},{l:"Shoutouts",v:loc.score.shoutouts,c:"#a78bfa"},{l:"Avg $",v:loc.score.avgPrice?"$"+loc.score.avgPrice.toFixed(2):"—",c:"#f97316"}].map(s=><div key={s.l} style={{background:"rgba(124,58,237,0.08)",borderRadius:8,padding:"7px",textAlign:"center"}}><div style={{fontSize:9,color:"#7c5cad",fontWeight:700}}>{s.l}</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:15,color:s.c}}>{s.v}</div></div>)}
+                    </div>
+                  </>:<div style={{textAlign:"center",padding:"14px",color:"#5a3f80",fontSize:12}}><p>No reviews yet.</p><button className="btn" style={{marginTop:10,fontSize:11,padding:"7px 16px"}} onClick={()=>setView("menu")}>Log a Visit</button></div>}
+                  {loc.reviews.length>0&&<><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd",margin:"12px 0 6px"}}>RECENT VISITS</div><div style={{display:"flex",flexDirection:"column",gap:7}}>{loc.reviews.slice(0,4).map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined}/>)}</div></>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
