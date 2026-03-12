@@ -694,6 +694,97 @@ function reviewsArrayToMap(arr){
   return map;
 }
 
+
+// ─── FRIEND PROFILE VIEW ──────────────────────────────────────────────────────
+function FriendProfileView({friend, onBack, avatarCache, setSelectedItem, setView, onReport, currentUser}){
+  const bc = BOROUGH_COLORS[friend.borough]||"#7c3aed";
+  const avgRating = friend.reviews.length ? (friend.reviews.reduce((a,r)=>a+r.rating,0)/friend.reviews.length).toFixed(1) : "—";
+  const shoutouts = friend.reviews.filter(r=>r.employees).length;
+  const boroughs = [...new Set(friend.reviews.map(r=>r.borough).filter(Boolean))];
+  const topItem = (()=>{
+    const counts={};friend.reviews.forEach(r=>{counts[r.itemId]=(counts[r.itemId]||0)+1;});
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    return top?MENU_ITEMS.find(i=>i.id===parseInt(top[0])):null;
+  })();
+  const SOCIAL_META={instagram:{label:"Instagram",color:"#e1306c",icon:"📸",base:"https://instagram.com/"},tiktok:{label:"TikTok",color:"#010101",icon:"🎵",base:"https://tiktok.com/@"},twitter:{label:"Twitter/X",color:"#1da1f2",icon:"🐦",base:"https://twitter.com/"},youtube:{label:"YouTube",color:"#ff0000",icon:"▶️",base:"https://youtube.com/@"}};
+  const socialEntries = Object.entries(friend.socialLinks||{}).filter(([,v])=>v);
+  const av = friend.avatarUrl || avatarCache[friend.username];
+
+  return(
+    <div>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#a78bfa",fontSize:13,fontWeight:700,cursor:"pointer",padding:"0 0 14px",display:"flex",alignItems:"center",gap:6,fontFamily:"Nunito"}}>← Back to Friends</button>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,rgba(124,58,237,0.2),rgba(219,39,119,0.1))",border:"1px solid #3a2060",borderRadius:16,padding:"20px",marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+          <div style={{width:72,height:72,borderRadius:"50%",background:bc+"44",border:"3px solid "+bc,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:30,color:bc,flexShrink:0,overflow:"hidden"}}>
+            {av?<img src={av} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:friend.username[0].toUpperCase()}
+          </div>
+          <div>
+            <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:2,lineHeight:1,marginBottom:4}}>{friend.username}</h1>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <span style={{background:"#7c3aed22",color:"#a78bfa",padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>🌮 Taco Bell Enjoyer</span>
+              {boroughs.map(b=><span key={b} style={{background:BOROUGH_COLORS[b]+"22",color:BOROUGH_COLORS[b],padding:"2px 10px",borderRadius:20,fontSize:10,fontWeight:700}}>📍 {b}</span>)}
+            </div>
+          </div>
+        </div>
+        {/* Stats */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:socialEntries.length?16:0}}>
+          {[{icon:"📝",val:friend.reviews.length,label:"Reviews"},{icon:"⭐",val:avgRating,label:"Avg Rating"},{icon:"👏",val:shoutouts,label:"Shoutouts"},{icon:"🏙️",val:boroughs.length||"—",label:"Boroughs"}].map(s=>(
+            <div key={s.label} style={{background:"rgba(13,5,32,0.6)",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
+              <div style={{fontSize:16}}>{s.icon}</div>
+              <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:22,color:"#a78bfa"}}>{s.val}</div>
+              <div style={{color:"#7c5cad",fontSize:9,fontWeight:700}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        {/* Social Links */}
+        {socialEntries.length>0&&(
+          <div>
+            <div style={{fontSize:9,color:"#7c5cad",fontWeight:700,letterSpacing:2,marginBottom:8}}>SOCIALS</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {socialEntries.map(([platform,handle])=>{
+                const meta=SOCIAL_META[platform];
+                if(!meta)return null;
+                return(
+                  <a key={platform} href={meta.base+handle} target="_blank" rel="noopener noreferrer" style={{background:meta.color+"22",border:"1px solid "+meta.color+"44",borderRadius:20,padding:"5px 14px",fontSize:12,fontWeight:700,color:meta.color,textDecoration:"none",display:"flex",alignItems:"center",gap:5}}>
+                    <span>{meta.icon}</span><span>@{handle}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Anthem */}
+      {friend.anthem&&(
+        <div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #3a2060",borderRadius:14,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:22}}>🎵</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:9,color:"#a78bfa",fontWeight:700,letterSpacing:2,marginBottom:2}}>TACOLOG ANTHEM</div>
+            <div style={{fontWeight:800,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{friend.anthem.title}</div>
+            {friend.anthem.artist&&<div style={{fontSize:11,color:"#9d7cc7"}}>{friend.anthem.artist}</div>}
+          </div>
+          {friend.anthem.linkType==="youtube"&&<a href={friend.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#ff0000",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,color:"#fff",textDecoration:"none"}}>▶ YouTube</a>}
+          {friend.anthem.linkType==="spotify"&&<a href={friend.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#1db954",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,color:"#fff",textDecoration:"none"}}>▶ Spotify</a>}
+          {friend.anthem.linkType==="soundcloud"&&<a href={friend.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#ff5500",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,color:"#fff",textDecoration:"none"}}>▶ SoundCloud</a>}
+          {friend.anthem.linkType==="audio"&&<a href={friend.anthem.url} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:800,color:"#fff",textDecoration:"none"}}>▶ Play</a>}
+        </div>
+      )}
+      {/* Top item */}
+      {topItem&&<div style={{background:"rgba(26,13,53,0.9)",border:"1px solid #2a1550",borderRadius:14,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+        <span style={{fontSize:22}}>🏆</span>
+        <div><div style={{fontSize:9,color:"#fbbf24",fontWeight:700,letterSpacing:2,marginBottom:2}}>MOST REVIEWED ITEM</div><div style={{fontWeight:800,fontSize:13}}>{topItem.name}</div><div style={{fontSize:10,color:"#7c5cad"}}>{topItem.category}</div></div>
+      </div>}
+      {/* Reviews */}
+      <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:3,marginBottom:12,color:"#c4b5fd"}}>{friend.username.toUpperCase()}'S RATINGS ({friend.reviews.length})</h2>
+      {friend.reviews.length===0
+        ?<div style={{textAlign:"center",padding:"28px",color:"#5a3f80",border:"1px dashed #2a1550",borderRadius:12}}><div style={{fontSize:32}}>📋</div><p style={{marginTop:8,fontSize:12}}>No ratings yet</p></div>
+        :<div style={{display:"flex",flexDirection:"column",gap:9}}>{friend.reviews.map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={onReport} currentUser={currentUser}/>)}</div>
+      }
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App(){
   const [session,setSession]=useState(null); // null=show auth, {username,token,friendCode}=logged in, "guest"=browsing
@@ -751,6 +842,10 @@ function App(){
   const [editingUsername,setEditingUsername]=useState(false);
   const [newUsername,setNewUsername]=useState("");
   const [usernameError,setUsernameError]=useState("");
+  const [socialLinks,setSocialLinks]=useState({instagram:"",tiktok:"",twitter:"",youtube:""});
+  const [editingSocialLinks,setEditingSocialLinks]=useState(false);
+  const [savingSocialLinks,setSavingSocialLinks]=useState(false);
+  const [viewingFriend,setViewingFriend]=useState(null);
 
   // Boot: restore session then load reviews (pure fetch, no SDK)
   useEffect(()=>{
@@ -828,16 +923,12 @@ function App(){
             const loadedFriends = {};
             for(const fc of allCodes){
               try {
-                const pr = await sbGet("/rest/v1/profiles?friend_code=eq."+fc+"&select=username,friend_code", ANON);
+                const pr = await sbGet("/rest/v1/profiles?friend_code=eq."+fc+"&select=username,friend_code,avatar_url,anthem_title,anthem_artist,anthem_url,anthem_link_type,social_links", ANON);
                 const fp = Array.isArray(pr) ? pr[0] : null;
                 if(fp){
                   const rev = await sbGet("/rest/v1/reviews?username=eq."+encodeURIComponent(fp.username)+"&select=*&order=created_at.desc", ANON);
-                  const ANON2="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
-                  const anthemResp = await fetch(SUPABASE_URL+"/rest/v1/profiles?friend_code=eq."+fc+"&select=anthem_title,anthem_artist,anthem_url,anthem_link_type",{headers:{"apikey":ANON2,"Authorization":"Bearer "+ANON2}});
-                  const anthemRows = await anthemResp.json();
-                  const aRow = anthemRows?.[0];
-                  const friendAnthem = aRow?.anthem_url ? {title:aRow.anthem_title||"Anthem",artist:aRow.anthem_artist||"",url:aRow.anthem_url,linkType:aRow.anthem_link_type||"audio"} : null;
-                  loadedFriends[fc]={username:fp.username,code:fp.friend_code,borough:"NYC",anthem:friendAnthem,reviews:Array.isArray(rev)?rev.map(r=>({
+                  const friendAnthem = fp.anthem_url ? {title:fp.anthem_title||"Anthem",artist:fp.anthem_artist||"",url:fp.anthem_url,linkType:fp.anthem_link_type||"audio"} : null;
+                  loadedFriends[fc]={username:fp.username,code:fp.friend_code,borough:"NYC",anthem:friendAnthem,avatarUrl:fp.avatar_url||null,socialLinks:fp.social_links||{},reviews:Array.isArray(rev)?rev.map(r=>({
                     id:r.id,itemId:r.item_id,user:r.username,rating:r.rating,text:r.review_text,
                     borough:r.borough,location:r.location,employees:r.employees,price:r.price,
                     safetyLight:r.safety_light,date:new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
@@ -850,17 +941,20 @@ function App(){
           }
         } catch(e){ console.error("Failed to load friends",e); }
       }
-      // Load own anthem from Supabase
+      // Load own anthem + social links from Supabase
       if(s?.userId){
         try {
           const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzdmtibXJremJ2a2RqdWp6a2pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjUzOTQsImV4cCI6MjA4ODg0MTM5NH0.ZbPHkH6Q1tcR6TZHGOfJSRmoaqjDvIhgIBQwm_pxjsA";
-          const pr = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId+"&select=anthem_title,anthem_artist,anthem_url,anthem_link_type",{
+          const pr = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId+"&select=anthem_title,anthem_artist,anthem_url,anthem_link_type,social_links",{
             headers:{"apikey":ANON,"Authorization":"Bearer "+ANON}
           });
           const rows = await pr.json();
           const row = rows?.[0];
           if(row?.anthem_url){
             setAnthem({title:row.anthem_title||"My Anthem",artist:row.anthem_artist||"",url:row.anthem_url,isFile:false,linkType:row.anthem_link_type||"audio"});
+          }
+          if(row?.social_links){
+            setSocialLinks({instagram:"",tiktok:"",twitter:"",youtube:"",...row.social_links});
           }
         } catch(e){}
       }
@@ -1163,6 +1257,23 @@ function App(){
         showToast("✅ Username updated!");
       } else { setUsernameError("Username may already be taken."); }
     } catch(e){ setUsernameError("Couldn't connect."); }
+  };
+
+  const saveSocialLinks=async()=>{
+    if(!isLoggedIn)return;
+    setSavingSocialLinks(true);
+    try {
+      const cleaned={};
+      ["instagram","tiktok","twitter","youtube"].forEach(k=>{if(socialLinks[k]&&socialLinks[k].trim())cleaned[k]=socialLinks[k].trim().replace(/^@/,"").replace(/.*\/([^\/]+)\/?$/,"$1");});
+      const res = await fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId,{
+        method:"PATCH",
+        headers:{...sbHeaders(session.token),"Prefer":"return=minimal"},
+        body:JSON.stringify({social_links:cleaned})
+      });
+      if(res.ok){setSocialLinks(cleaned);setEditingSocialLinks(false);showToast("✅ Social links saved!");}
+      else{showToast("❌ Save failed");}
+    } catch(e){showToast("❌ Couldn't connect");}
+    setSavingSocialLinks(false);
   };
 
   const filteredItems=MENU_ITEMS.filter(i=>filterCat==="All"||i.category===filterCat).filter(i=>i.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sortBy==="rating"?getAvg(b.id)-getAvg(a.id):sortBy==="reviewed"?getReviews(b.id).length-getReviews(a.id).length:a.id-b.id);
@@ -1515,6 +1626,9 @@ function App(){
         {/* FRIENDS */}
         {view==="friends"&&(
           <div>
+            {viewingFriend
+              ?<FriendProfileView friend={viewingFriend} onBack={()=>setViewingFriend(null)} avatarCache={avatarCache} setSelectedItem={setSelectedItem} setView={setView} onReport={setReportTarget} currentUser={currentUser}/>
+              :<>
             <h1 style={{fontFamily:"'Bebas Neue',cursive",fontSize:36,letterSpacing:3,marginBottom:14}}>👥 FRIENDS</h1>
             {!isLoggedIn&&<div style={{background:"rgba(124,58,237,0.1)",border:"1px solid #7c3aed",borderRadius:14,padding:"20px",marginBottom:16,textAlign:"center"}}>
               <div style={{fontSize:32,marginBottom:8}}>🔐</div>
@@ -1545,6 +1659,7 @@ function App(){
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:36,height:36,borderRadius:"50%",background:bc+"44",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:16,color:bc,flexShrink:0}}>{f.username[0]}</div>
                         <div style={{flex:1}}><div style={{fontWeight:800,fontSize:13}}>{f.username}</div><span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {f.borough}</span></div>
+                        <button onClick={e=>{e.stopPropagation();setViewingFriend(f);}} style={{background:"rgba(124,58,237,0.2)",border:"1px solid #7c3aed",borderRadius:6,color:"#a78bfa",fontSize:10,padding:"3px 8px",cursor:"pointer",fontWeight:700}}>👤 Profile</button>
                         <button onClick={e=>{e.stopPropagation();removeFriend(f.code);}} style={{background:"none",border:"1px solid #2a1550",borderRadius:6,color:"#7c5cad",fontSize:10,padding:"3px 8px",cursor:"pointer"}}>✕</button>
                       </div>
                     </div>
@@ -1572,6 +1687,7 @@ function App(){
                 })}
               </div>
             }
+            </>}
           </div>
         )}
 
@@ -1649,6 +1765,45 @@ function App(){
                   {anthemPlaying&&<div style={{display:"flex",gap:2,marginTop:3,alignItems:"flex-end",height:12}}>{[1,2,3,4,5,6].map(i=><div key={i} style={{width:3,background:"#7c3aed",borderRadius:2,animation:"eq"+i%4+" "+0.4+i*0.07+"s ease-in-out infinite alternate"}}/>)}</div>}
                 </div>
               </div>}
+            </div>}
+
+            {/* Social Links */}
+            {isLoggedIn&&<div style={{background:"rgba(26,13,53,0.95)",border:"1px solid #2a1550",borderRadius:14,padding:"14px 16px",marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:16}}>🔗</span><div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,color:"#c4b5fd"}}>SOCIAL LINKS</div><div style={{fontSize:9,color:"#5a3f80"}}>Only visible to mutual friends</div></div></div>
+                {!editingSocialLinks&&<button className="btn" style={{fontSize:10,padding:"5px 12px"}} onClick={()=>setEditingSocialLinks(true)}>✏️ Edit</button>}
+              </div>
+              {editingSocialLinks?(
+                <div>
+                  {[{key:"instagram",label:"Instagram",icon:"📸",placeholder:"username"},{key:"tiktok",label:"TikTok",icon:"🎵",placeholder:"username"},{key:"twitter",label:"Twitter/X",icon:"🐦",placeholder:"username"},{key:"youtube",label:"YouTube",icon:"▶️",placeholder:"channel"}].map(({key,label,icon,placeholder})=>(
+                    <div key={key} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                      <span style={{fontSize:14,width:20}}>{icon}</span>
+                      <div style={{fontSize:11,color:"#9d7cc7",width:72,fontWeight:700}}>{label}</div>
+                      <div style={{display:"flex",alignItems:"center",flex:1,background:"rgba(13,5,32,0.6)",border:"1px solid #2a1550",borderRadius:8,overflow:"hidden"}}>
+                        <span style={{padding:"0 6px",color:"#5a3f80",fontSize:12}}>@</span>
+                        <input className="inp" style={{flex:1,border:"none",background:"transparent",fontSize:12,padding:"7px 8px 7px 0"}} placeholder={placeholder} value={socialLinks[key]||""} onChange={e=>setSocialLinks(prev=>({...prev,[key]:e.target.value}))}/>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{display:"flex",gap:8,marginTop:4}}>
+                    <button className="btn" style={{fontSize:11,padding:"6px 16px"}} onClick={saveSocialLinks} disabled={savingSocialLinks}>{savingSocialLinks?"⏳ Saving...":"Save"}</button>
+                    <button onClick={()=>setEditingSocialLinks(false)} style={{background:"none",border:"1px solid #2a1550",borderRadius:20,color:"#5a3f80",fontSize:11,padding:"6px 14px",cursor:"pointer",fontFamily:"Nunito",fontWeight:700}}>Cancel</button>
+                  </div>
+                </div>
+              ):(
+                <div>
+                  {Object.entries(socialLinks).filter(([,v])=>v).length===0
+                    ?<div style={{color:"#5a3f80",fontSize:12}}>No social links added yet.</div>
+                    :<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      {[{key:"instagram",color:"#e1306c",icon:"📸",base:"https://instagram.com/"},{key:"tiktok",color:"#010101",icon:"🎵",base:"https://tiktok.com/@"},{key:"twitter",color:"#1da1f2",icon:"🐦",base:"https://twitter.com/"},{key:"youtube",color:"#ff0000",icon:"▶️",base:"https://youtube.com/@"}].map(({key,color,icon,base})=>socialLinks[key]?(
+                        <a key={key} href={base+socialLinks[key]} target="_blank" rel="noopener noreferrer" style={{background:color+"22",border:"1px solid "+color+"44",borderRadius:20,padding:"5px 14px",fontSize:12,fontWeight:700,color:color,textDecoration:"none",display:"flex",alignItems:"center",gap:5}}>
+                          <span>{icon}</span><span>@{socialLinks[key]}</span>
+                        </a>
+                      ):null)}
+                    </div>
+                  }
+                </div>
+              )}
             </div>}
 
             {/* Report Card */}
