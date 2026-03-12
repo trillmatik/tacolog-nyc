@@ -923,12 +923,15 @@ function App(){
             const loadedFriends = {};
             for(const fc of allCodes){
               try {
-                const pr = await sbGet("/rest/v1/profiles?friend_code=eq."+fc+"&select=username,friend_code,avatar_url,anthem_title,anthem_artist,anthem_url,anthem_link_type,social_links", ANON);
+                const pr = await sbGet("/rest/v1/profiles?friend_code=eq."+fc+"&select=username,friend_code,avatar_url,anthem_title,anthem_artist,anthem_url,anthem_link_type,social_links,friend_codes", ANON);
                 const fp = Array.isArray(pr) ? pr[0] : null;
                 if(fp){
                   const rev = await sbGet("/rest/v1/reviews?username=eq."+encodeURIComponent(fp.username)+"&select=*&order=created_at.desc", ANON);
                   const friendAnthem = fp.anthem_url ? {title:fp.anthem_title||"Anthem",artist:fp.anthem_artist||"",url:fp.anthem_url,linkType:fp.anthem_link_type||"audio"} : null;
-                  loadedFriends[fc]={username:fp.username,code:fp.friend_code,borough:"NYC",anthem:friendAnthem,avatarUrl:fp.avatar_url||null,socialLinks:fp.social_links||{},reviews:Array.isArray(rev)?rev.map(r=>({
+                  // Mutuality check: does this friend also have MY friend code in their list?
+                  const theirCodes = fp.friend_codes ? (Array.isArray(fp.friend_codes) ? fp.friend_codes : JSON.parse(fp.friend_codes)) : [];
+                  const isMutual = s?.friendCode ? theirCodes.includes(s.friendCode) : false;
+                  loadedFriends[fc]={username:fp.username,code:fp.friend_code,borough:"NYC",anthem:friendAnthem,avatarUrl:fp.avatar_url||null,socialLinks:isMutual?(fp.social_links||{}):{},isMutual,reviews:Array.isArray(rev)?rev.map(r=>({
                     id:r.id,itemId:r.item_id,user:r.username,rating:r.rating,text:r.review_text,
                     borough:r.borough,location:r.location,employees:r.employees,price:r.price,
                     safetyLight:r.safety_light,date:new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),
@@ -1658,13 +1661,27 @@ function App(){
                     <div onClick={()=>setSelectedFriend(isSel?null:f)} style={{background:isSel?"rgba(124,58,237,0.18)":"rgba(26,13,53,0.9)",border:"1px solid "+isSel?"#7c3aed":"#2a1550",borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:36,height:36,borderRadius:"50%",background:bc+"44",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',cursive",fontSize:16,color:bc,flexShrink:0}}>{f.username[0]}</div>
-                        <div style={{flex:1}}><div style={{fontWeight:800,fontSize:13}}>{f.username}</div><span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {f.borough}</span></div>
-                        <button onClick={e=>{e.stopPropagation();setViewingFriend(f);}} style={{background:"rgba(124,58,237,0.2)",border:"1px solid #7c3aed",borderRadius:6,color:"#a78bfa",fontSize:10,padding:"3px 8px",cursor:"pointer",fontWeight:700}}>👤 Profile</button>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <div style={{fontWeight:800,fontSize:13}}>{f.username}</div>
+                            {f.isMutual
+                              ?<span style={{background:"#22c55e22",color:"#22c55e",padding:"1px 6px",borderRadius:20,fontSize:8,fontWeight:700}}>✓ MUTUAL</span>
+                              :<span style={{background:"#f59e0b22",color:"#f59e0b",padding:"1px 6px",borderRadius:20,fontSize:8,fontWeight:700}}>⏳ PENDING</span>
+                            }
+                          </div>
+                          <span style={{background:bc+"22",color:bc,padding:"1px 7px",borderRadius:20,fontSize:9,fontWeight:700}}>📍 {f.borough}</span>
+                        </div>
+                        {f.isMutual&&<button onClick={e=>{e.stopPropagation();setViewingFriend(f);}} style={{background:"rgba(124,58,237,0.2)",border:"1px solid #7c3aed",borderRadius:6,color:"#a78bfa",fontSize:10,padding:"3px 8px",cursor:"pointer",fontWeight:700}}>👤 Profile</button>}
                         <button onClick={e=>{e.stopPropagation();removeFriend(f.code);}} style={{background:"none",border:"1px solid #2a1550",borderRadius:6,color:"#7c5cad",fontSize:10,padding:"3px 8px",cursor:"pointer"}}>✕</button>
                       </div>
                     </div>
                     {isSel&&<div style={{background:"rgba(26,13,53,0.7)",border:"1px solid #2a1550",borderTop:"none",borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
-                      {/* Friend anthem */}
+                      {!f.isMutual&&<div style={{textAlign:"center",padding:"16px 12px",color:"#f59e0b"}}>
+                        <div style={{fontSize:28,marginBottom:6}}>⏳</div>
+                        <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:14,letterSpacing:2,marginBottom:4}}>WAITING FOR THEM TO ADD YOU BACK</div>
+                        <div style={{fontSize:11,color:"#7c5cad"}}>Share your code <span style={{color:"#a78bfa",fontFamily:"'Bebas Neue',cursive"}}>{session?.friendCode}</span> so they can add you</div>
+                      </div>}
+                      {f.isMutual&&<>{/* Friend anthem */}
                       {f.anthem&&<div style={{background:"rgba(124,58,237,0.1)",border:"1px solid #3a2060",borderRadius:10,padding:"10px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
                         <span style={{fontSize:18}}>🎵</span>
                         <div style={{flex:1,minWidth:0}}>
@@ -1682,6 +1699,7 @@ function App(){
                         ))}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>{f.reviews.map(r=><ReviewCard key={r.id} r={r} avatarCache={avatarCache} onClick={r.item?()=>{setSelectedItem(r.item);setView("detail");}:undefined} onReport={setReportTarget} currentUser={currentUser}/>)}</div>
+                      </>}
                     </div>}
                   </div>);
                 })}
