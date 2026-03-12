@@ -606,6 +606,14 @@ function App(){
           const lsFriends = lsGet("tacolog:friends:"+s.userId) || {};
           const lsCodes = Object.keys(lsFriends);
           const allCodes = [...new Set([...sbCodes, ...lsCodes])];
+          // One-time migration: if localStorage has friends that Supabase doesn't, push them up
+          if(lsCodes.length>0 && sbCodes.length===0 && s.token){
+            fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+s.userId,{
+              method:"PATCH",
+              headers:{...sbHeaders(s.token),"Prefer":"return=minimal"},
+              body:JSON.stringify({friend_codes:JSON.stringify(lsCodes)})
+            }).catch(()=>{});
+          }
           if(allCodes.length > 0){
             const loadedFriends = {};
             for(const fc of allCodes){
@@ -746,8 +754,17 @@ function App(){
         setFriends(updatedFriends);
         setAddCodeInput("");setAddCodeError("");
         showToast("🎉 "+profile.username+" added!");
-        // Immediately persist to localStorage
+        // Persist to localStorage
         lsSet("tacolog:friends:"+session?.userId, updatedFriends);
+        // Persist friend codes to Supabase
+        if(session?.token&&session?.userId){
+          const allCodes=Object.keys(updatedFriends);
+          fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId,{
+            method:"PATCH",
+            headers:{...sbHeaders(session.token),"Prefer":"return=minimal"},
+            body:JSON.stringify({friend_codes:JSON.stringify(allCodes)})
+          }).catch(()=>{});
+        }
       } else {
         setAddCodeError("Code not found. Ask your friend to share their code from their profile.");
       }
@@ -755,7 +772,22 @@ function App(){
       setAddCodeError("Couldn't connect. Try again.");
     }
   };
-  const removeFriend=code=>{setFriends(prev=>{const n={...prev};delete n[code];return n;});if(selectedFriend&&selectedFriend.code===code)setSelectedFriend(null);};
+  const removeFriend=code=>{
+    setFriends(prev=>{
+      const n={...prev};delete n[code];
+      lsSet("tacolog:friends:"+session?.userId, n);
+      if(session?.token&&session?.userId){
+        const allCodes=Object.keys(n);
+        fetch(SUPABASE_URL+"/rest/v1/profiles?id=eq."+session.userId,{
+          method:"PATCH",
+          headers:{...sbHeaders(session.token),"Prefer":"return=minimal"},
+          body:JSON.stringify({friend_codes:JSON.stringify(allCodes)})
+        }).catch(()=>{});
+      }
+      return n;
+    });
+    if(selectedFriend&&selectedFriend.code===code)setSelectedFriend(null);
+  };
 
   const getAnthemLinkType=(url)=>{
     if(!url)return null;
